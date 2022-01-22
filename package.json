@@ -1,7 +1,6 @@
 {
-  "name": "project3",
+  "name": "hedron",
   "version": "1.0.0",
-  "description": "",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
@@ -18,5 +17,14 @@
     "electron-store": "^8.0.1",
     "qs": "^6.10.3",
     "xlsx": "^0.17.5"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moiraiconservation/hedron.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moiraiconservation/hedron/issues"
+  },
+  "homepage": "https://github.com/moiraiconservation/hedron#readme",
+  "description": ""
 }
