@@ -238,7 +238,7 @@ ipc.on('toMain', async (event, arg) => {
 
 			case 'open_signalink': {
 				await data.load_xlsx_file(arg.data.filePaths[0]);
-				win.main.webContents.send('toRender', { command: 'console.log', data: data.cargo });
+				win.main.webContents.send('toRender', { command: 'signalink', data: data.cargo });
 				break;
 			}
 	

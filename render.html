@@ -30,7 +30,7 @@
 
 		let window_width = 0;
 		let window_height = 0;
-		let render = new RENDER();
+		let figure = new FIGURE();
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -38,23 +38,52 @@
 		window.api.receive('toRender', async (arg) => {
 			if (arg.command) {
 				switch (arg.command) {
+
+					// core commands
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
 					case 'initialize': {
-						console.log(arg);
 						window_height = arg.height;
 						window_width = arg.width;
-						const network = render.network();
-						document.body.append(network);
-
 						break;
 					}
 					case 'window_resize': {
-						console.log(arg);
 						window_height = arg.height;
 						window_width = arg.width;
 						break;
 					}
+
+					//aplication-specific commands
+					case 'signalink': {
+						let directory = [];
+						for (let i = 0; i < arg.data.length; i++) {
+							directory.push(arg.data[i].source_uniprotAC);
+							directory.push(arg.data[i].target_uniprotAC);
+						}
+						directory = Array.from(new Set(directory));
+						const nodes = [];
+						for (let i = 0; i < directory.length; i++) {
+							const obj = { id: '', name: '', target: [] };
+							obj.id = directory[i];
+							const records = arg.data.filter((x) => { return x.source_uniprotAC === directory[i]; });
+							if (records.length) {
+								obj.name = records[0].source_name;
+								for (let j = 0; j < records.length; j++) {
+									const target = { index: 0, id: '' };
+									target.index = directory.indexOf(records[j].target_uniprotAC);
+									target.id = records[j].target_uniprotAC;
+									obj.target.push(target);
+								}
+							}
+							nodes.push(obj);
+						}
+						const network = figure.network(nodes);
+						document.body.append(network);
+						break;
+					}
+
+					default: { break; }
+
 				} 
 			}
 		});
