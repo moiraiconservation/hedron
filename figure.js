@@ -1,41 +1,133 @@
 ///////////////////////////////////////////////////////////////////////////////
 // figure.js
 
-function FIGURE() {
+function CIRCLE(context, x, y, r, fill, stroke) {
 
-	function CIRCLE(context, x, y, r, fill, stroke) {
-		this.startingAngle = 0;
-		this.endAngle = 2 * Math.PI;
-		this.x = x;
-		this.y = y;
-		this.r = r;
-		this.fill = fill;
-		this.stroke = stroke;
+	x = x || Math.floor(Math.random() * 10000) - 5000;
+	y = y || Math.floor(Math.random() * 10000) - 5000;
+	r = r || 10;
+	fill = fill || '#' + Math.floor(Math.random() * 16777215).toString(16);
+	stroke = stroke || fill;
 
-		this.draw = () => {
-			context.beginPath();
-			context.arc(this.x, this.y, this.r, this.startingAngle, this.endAngle);
-			context.fillStyle = this.fill;
-			context.lineWidth = 3;
-			context.fill();
-			context.strokeStyle = this.stroke;
-			context.stroke();
-		}
+	this.context = context;
+	this.startingAngle = 0;
+	this.endAngle = 2 * Math.PI;
+	this.x = x;
+	this.y = y;
+	this.r = r;
+	this.fill = fill;
+	this.stroke = stroke;
 
-		this.is_visible = () => {
-			const width = context.canvas.width;
-			const height = context.canvas.height;
-			if (this.x < (0 - this.r)) { return false; }
-			if (this.x > (width + r)) { return false; }
-			if (this.y < (0 - this.r)) { return false; }
-			if (this.y > (height + this.r)) { return false; }
-			return true;
+	this.is_visible = () => {
+		const width = this.context.canvas.width;
+		const height = this.context.canvas.height;
+		if (this.x < (0 - this.r)) { return false; }
+		if (this.x > (width + r)) { return false; }
+		if (this.y < (0 - this.r)) { return false; }
+		if (this.y > (height + this.r)) { return false; }
+		return true;
+	}
+	
+	this.draw = () => {
+		this.context.beginPath();
+		this.context.arc(this.x, this.y, this.r, this.startingAngle, this.endAngle);
+		this.context.fillStyle = this.fill;
+		this.context.lineWidth = 3;
+		this.context.fill();
+		this.context.strokeStyle = this.stroke;
+		this.context.stroke();
+	}
+
+}
+
+function LINE(context, x0, y0, x1, y1, stroke, thickness) {
+
+	x0 = x0 || Math.floor(Math.random() * 10000) - 5000;
+	y0 = y0 || Math.floor(Math.random() * 10000) - 5000;
+	x1 = x1 || x0 + Math.floor(Math.random() * 100) - 50;
+	y1 = y1 || y0 + Math.floor(Math.random() * 100) - 50;
+	stroke = stroke || '#' + Math.floor(Math.random() * 16777215).toString(16);
+	thickness = thickness || 2;
+
+	this.context = context;
+	this.x0 = x0;
+	this.y0 = y0;
+	this.x1 = x1;
+	this.y1 = y1;
+	this.stroke = stroke;
+	this.thickness = thickness;
+
+	this.is_visible = () => {
+		const width = this.context.canvas.width;
+		const height = this.context.canvas.height;
+		if (this.x0 < 0 && this.x1 < 0) { return false; }
+		if (this.x0 > width && this.x1 > width) { return false; }
+		if (this.y0 < 0 && this.y1 < 0) { return false; }
+		if (this.y0 > height && this.y1 > height) { return false; }
+		return true;
+	}
+
+	this.draw = () => {
+		this.context.beginPath();
+		this.context.strokeStyle = this.stroke;
+		this.context.lineWidth = this.thickness;
+		this.context.moveTo(this.x0, this.y0);
+		this.context.lineTo(this.x1, this.y1);
+		this.context.closePath();
+		this.context.stroke();
+	}
+
+}
+
+function NETWORK_RECORD(context, node) {
+	this.context = context;
+	this.node = node || new NODE();
+	this.circle = new CIRCLE(this.context);
+	this.lines = [];
+	if (this.node.targets) {
+		for (let i = 0; i < this.node.targets.length; i++) {
+			const line = new LINE(this.context, this.circle.x, this.circle.y);
+			this.lines.push(line);
 		}
 	}
 
+	this.draw = () => {
+		if (this.circle.is_visible()) {
+			for (let i = 0; i < this.lines.length; i++) { this.lines[i].draw(); }
+			this.circle.draw();
+		}
+	}
+
+}
+
+function NODE() {
+	this.id = '';
+	this.name = '';
+	this.targets = [];
+}
+
+function NODE_TARGET() {
+	this.id = '';
+	this.index = 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+function FIGURE() {
+
+	// TO-DO:
+	//	(5)	Add a method to the NETWORK object that adjusts
+	//			the x and y parameters of CIRCLE and LINE
+	//			objects based on the network topology.  This should
+	//			be an initialization method for constructing the
+	//			starting network figure layout.
+	//	(6) Update the intersects function in this.network
+	//			so it looks less like it came directly from
+	//			StackOverflow.
+
 	this.network = (nodes) => {
 
-		const circles = [];
+		const records = [];
 		const pan = { start_x: 0, start_y: 0, state: false }
 		const focused = { key: 0, state: false }
 		let is_mouse_down = false;
@@ -50,21 +142,19 @@ function FIGURE() {
 		document.addEventListener('mouseup', setDraggable, false);
 		document.addEventListener('wheel', mouse_zoom, false);
 
-		//make some circles
+		// create the records
 		for (let i = 0; i < nodes.length; i++) {
-			const rand_x = Math.floor(Math.random() * (canvas.width * 10));
-			const rand_y = Math.floor(Math.random() * (canvas.height * 10));
-			const rand_color = '#' + Math.floor(Math.random() * 16777215).toString(16);
-			const new_circle = new CIRCLE(context, rand_x, rand_y, 10, rand_color, rand_color);
-			circles.push(new_circle);
+			const record = new NETWORK_RECORD(context, nodes[i]);
+			records.push(record);
+		}
+		for (let i = 0; i < records.length; i++) {
+			update_target_lines(i);
 		}
 
-		//main draw method
+		// main draw method
 		function draw_figure() {
 			context.clearRect(0, 0, canvas.width, canvas.height);
-			for (let i = 0; i < circles.length; i++) {
-				if (circles[i].is_visible()) { circles[i].draw(); }
-			}
+			for (let i = 0; i < records.length; i++) { records[i].draw(); }
 		}
 
 		function mouse_move(e) {
@@ -72,15 +162,16 @@ function FIGURE() {
 			const mouse_position = get_mouse_position(e);
 			//if any circle is focused
 			if (focused.state) {
-				circles[focused.key].x = mouse_position.x;
-				circles[focused.key].y = mouse_position.y;
+				records[focused.key].circle.x = mouse_position.x;
+				records[focused.key].circle.y = mouse_position.y;
+				update_target_lines(focused.key);
 				draw_figure();
 				return;
 			}
 			//no circle currently focused check if circle is hovered
-			for (let i = 0; i < circles.length; i++) {
-				if (circles[i].is_visible()) {
-					if (intersects(circles[i], mouse_position.x, mouse_position.y)) {
+			for (let i = 0; i < records.length; i++) {
+				if (records[i].circle.is_visible()) {
+					if (intersects(records[i].circle, mouse_position.x, mouse_position.y)) {
 						focused.key = i;
 						focused.state = true;
 						return;
@@ -96,9 +187,10 @@ function FIGURE() {
 			if (pan.state) {
 				const delta_x = mouse_position.x - pan.start_x;
 				const delta_y = mouse_position.y - pan.start_y;
-				for (let i = 0; i < circles.length; i++) {
-					circles[i].x += delta_x;
-					circles[i].y += delta_y;
+				for (let i = 0; i < records.length; i++) {
+					records[i].circle.x += delta_x;
+					records[i].circle.y += delta_y;
+					update_target_lines(i);
 				}
 				draw_figure();
 				pan.start_x = mouse_position.x;
@@ -115,12 +207,13 @@ function FIGURE() {
 			if (zoom < 0) { scale = zoom_in; }
 			else { scale = zoom_out; }
 			const mouse_position = get_mouse_position(e);
-			for (let i = 0; i < circles.length; i++) {
-				let delta_x = (circles[i].x - mouse_position.x) * scale;
-				let delta_y = (circles[i].y - mouse_position.y) * scale;
-				circles[i].x = mouse_position.x + delta_x;
-				circles[i].y = mouse_position.y + delta_y;
-				circles[i].r *= scale;
+			for (let i = 0; i < records.length; i++) {
+				let delta_x = (records[i].circle.x - mouse_position.x) * scale;
+				let delta_y = (records[i].circle.y - mouse_position.y) * scale;
+				records[i].circle.x = mouse_position.x + delta_x;
+				records[i].circle.y = mouse_position.y + delta_y;
+				records[i].circle.r *= scale;
+				update_target_lines(i);
 			}
 			draw_figure();
 		}
@@ -152,6 +245,21 @@ function FIGURE() {
 			const areaY = y - circle.y;
 			//return true if x^2 + y^2 <= radius squared.
 			return areaX * areaX + areaY * areaY <= circle.r * circle.r;
+		}
+
+		function update_target_lines(index) {
+			const x0 = records[index].circle.x;
+			const y0 = records[index].circle.y;
+			for (let i = 0; i < records[index].node.targets.length; i++) {
+				const target = records[index].node.targets[i];
+				const target_index = target.index;
+				const x1 = records[target_index].circle.x;
+				const y1 = records[target_index].circle.y;
+				records[index].lines[i].x0 = x0;
+				records[index].lines[i].y0 = y0;
+				records[index].lines[i].x1 = x1;
+				records[index].lines[i].y1 = y1;
+			}
 		}
 
 		draw_figure();

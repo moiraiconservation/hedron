@@ -63,19 +63,19 @@
 						directory = Array.from(new Set(directory));
 						const nodes = [];
 						for (let i = 0; i < directory.length; i++) {
-							const obj = { id: '', name: '', target: [] };
-							obj.id = directory[i];
+							const node = new NODE();
+							node.id = directory[i];
 							const records = arg.data.filter((x) => { return x.source_uniprotAC === directory[i]; });
 							if (records.length) {
-								obj.name = records[0].source_name;
+								node.name = records[0].source_name;
 								for (let j = 0; j < records.length; j++) {
-									const target = { index: 0, id: '' };
+									const target = new NODE_TARGET();
 									target.index = directory.indexOf(records[j].target_uniprotAC);
 									target.id = records[j].target_uniprotAC;
-									obj.target.push(target);
+									node.targets.push(target);
 								}
 							}
-							nodes.push(obj);
+							nodes.push(node);
 						}
 						const network = figure.network(nodes);
 						document.body.append(network);
