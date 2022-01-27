@@ -1,10 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
-// figure.js
+// graph.js
+
+///////////////////////////////////////////////////////////////////////////////
+// PART 1: CANVAS ELEMENTS ////////////////////////////////////////////////////
 
 function CIRCLE(context, x, y, r, fill, stroke) {
 
-	x = x || Math.floor(Math.random() * 10000) - 5000;
-	y = y || Math.floor(Math.random() * 10000) - 5000;
+	x = x || Math.floor(Math.random() * 100000) - 50000;
+	y = y || Math.floor(Math.random() * 100000) - 50000;
 	r = r || 10;
 	fill = fill || '#' + Math.floor(Math.random() * 16777215).toString(16);
 	stroke = stroke || fill;
@@ -60,11 +63,9 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 	this.is_visible = () => {
 		const width = this.context.canvas.width;
 		const height = this.context.canvas.height;
-		if (this.x0 < 0 && this.x1 < 0) { return false; }
-		if (this.x0 > width && this.x1 > width) { return false; }
-		if (this.y0 < 0 && this.y1 < 0) { return false; }
-		if (this.y0 > height && this.y1 > height) { return false; }
-		return true;
+		if ((this.x0 >= 0 && this.x0 <= width) && (this.y0 >= 0 && this.y0 <= height)) { return true; }
+		if ((this.x1 >= 0 && this.x1 <= width) && (this.y1 >= 0 && this.y1 <= height)) { return true; }
+		return false;
 	}
 
 	this.draw = () => {
@@ -79,14 +80,24 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// PART 2: DATA STRUCTURES ////////////////////////////////////////////////////
+
+function EDGE() {
+	this.id = '';
+	this.index = 0;
+	this.weight;
+}
+
 function NETWORK_RECORD(context, node) {
 	this.context = context;
-	this.node = node || new NODE();
 	this.circle = new CIRCLE(this.context);
+	this.force = 0;
 	this.lines = [];
-	if (this.node.targets) {
-		for (let i = 0; i < this.node.targets.length; i++) {
-			const line = new LINE(this.context, this.circle.x, this.circle.y);
+	this.node = node || new NODE();
+	if (this.node.edges.outgoing) {
+		for (let i = 0; i < this.node.edges.outgoing.length; i++) {
+			const line = new LINE(this.context, this.circle.x, this.circle.y, undefined, undefined, this.circle.stroke);
 			this.lines.push(line);
 		}
 	}
@@ -101,29 +112,30 @@ function NETWORK_RECORD(context, node) {
 }
 
 function NODE() {
+	// The node data structure is more abstract than other graph structures,
+	//	and lacks x-y coordinates and visibles elements like circles or lines.
+	//	Nodes simply have a name and an ID, and arrays indicating the indices
+	//	of other nodes they are connected to. The indicies are the indices of
+	//	a parent array containing nodes, representing the contents of network.
+	//	The connections are referred to as edges, and can be either directed
+	//	or undirected.
 	this.id = '';
 	this.name = '';
-	this.targets = [];
-}
-
-function NODE_TARGET() {
-	this.id = '';
-	this.index = 0;
+	this.edges = { incoming: [], outgoing: [] };
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// PART 3: THE FIGURE OBJECT //////////////////////////////////////////////////
 
 function FIGURE() {
 
-	// TO-DO:
-	//	(5)	Add a method to the NETWORK object that adjusts
-	//			the x and y parameters of CIRCLE and LINE
-	//			objects based on the network topology.  This should
-	//			be an initialization method for constructing the
-	//			starting network figure layout.
-	//	(6) Update the intersects function in this.network
-	//			so it looks less like it came directly from
-	//			StackOverflow.
+	this.force_directed = (records, force_threshold, max_iterations) => {
+		let iteration = 1;
+		while (iteration <= max_iterations) {
+			
+			iteration++;
+		}
+	}
 
 	this.network = (nodes) => {
 
@@ -131,15 +143,13 @@ function FIGURE() {
 		const pan = { start_x: 0, start_y: 0, state: false }
 		const focused = { key: 0, state: false }
 		let is_mouse_down = false;
-
 		const canvas = document.createElement('canvas');
 		canvas.width = document.body.clientWidth;
 		canvas.height = window_height - 200;
 		const context = canvas.getContext("2d");
-
 		document.addEventListener('mousemove', mouse_move, false);
-		document.addEventListener('mousedown', setDraggable, false);
-		document.addEventListener('mouseup', setDraggable, false);
+		document.addEventListener('mousedown', get_mouse_button_state, false);
+		document.addEventListener('mouseup', get_mouse_button_state, false);
 		document.addEventListener('wheel', mouse_zoom, false);
 
 		// create the records
@@ -147,14 +157,54 @@ function FIGURE() {
 			const record = new NETWORK_RECORD(context, nodes[i]);
 			records.push(record);
 		}
-		for (let i = 0; i < records.length; i++) {
-			update_target_lines(i);
-		}
+		for (let i = 0; i < records.length; i++) { update_all_edge_lines(i); }
 
-		// main draw method
+		// draw the network
+		console.log('Done!');
+		draw_figure();
+
+		///////////////////////////////////////////////////////////////////////////
+		// METHODS ////////////////////////////////////////////////////////////////
+
 		function draw_figure() {
 			context.clearRect(0, 0, canvas.width, canvas.height);
-			for (let i = 0; i < records.length; i++) { records[i].draw(); }
+			for (let i = 0; i < records.length; i++) {
+				const record = records[i];
+				if (record.circle.is_visible()) {
+					for (let j = 0; j < record.node.edges.incoming.length; j++) {
+						const target_index = record.node.edges.incoming[j].index;
+						const target_record = records[target_index];
+						const line_index = target_record.node.edges.outgoing.findIndex((x) => { return x.id === record.node.id; });
+						const line = target_record.lines[line_index];
+						line.draw();
+					}
+				}
+				record.draw();
+			}
+		}
+
+		function get_mouse_button_state(e) {
+			const t = e.type;
+			if (t === "mousedown") { is_mouse_down = true; }
+			else if (t === "mouseup") {
+				is_mouse_down = false;
+				focused.state = false;
+				pan.state = false;
+			}
+		}
+
+		function get_mouse_position(e) {
+			const mouse_position = { x: 0, y: 0 };
+			const rect = canvas.getBoundingClientRect();
+			mouse_position.x = Math.round(e.x - rect.left);
+			mouse_position.y = Math.round(e.y - rect.top);
+			return mouse_position;
+		}
+
+		function is_mouse_over(circle, x, y) {
+			const areaX = x - circle.x;
+			const areaY = y - circle.y;
+			return areaX * areaX + areaY * areaY <= circle.r * circle.r;
 		}
 
 		function mouse_move(e) {
@@ -164,14 +214,14 @@ function FIGURE() {
 			if (focused.state) {
 				records[focused.key].circle.x = mouse_position.x;
 				records[focused.key].circle.y = mouse_position.y;
-				update_target_lines(focused.key);
+				update_all_edge_lines(focused.key);
 				draw_figure();
 				return;
 			}
 			//no circle currently focused check if circle is hovered
 			for (let i = 0; i < records.length; i++) {
 				if (records[i].circle.is_visible()) {
-					if (intersects(records[i].circle, mouse_position.x, mouse_position.y)) {
+					if (is_mouse_over(records[i].circle, mouse_position.x, mouse_position.y)) {
 						focused.key = i;
 						focused.state = true;
 						return;
@@ -190,7 +240,7 @@ function FIGURE() {
 				for (let i = 0; i < records.length; i++) {
 					records[i].circle.x += delta_x;
 					records[i].circle.y += delta_y;
-					update_target_lines(i);
+					update_all_edge_lines(i);
 				}
 				draw_figure();
 				pan.start_x = mouse_position.x;
@@ -213,48 +263,41 @@ function FIGURE() {
 				records[i].circle.x = mouse_position.x + delta_x;
 				records[i].circle.y = mouse_position.y + delta_y;
 				records[i].circle.r *= scale;
-				update_target_lines(i);
+				update_all_edge_lines(i);
 			}
 			draw_figure();
 		}
 
-		//set mousedown state
-		function setDraggable(e) {
-			const t = e.type;
-			if (t === "mousedown") { is_mouse_down = true; }
-			else if (t === "mouseup") {
-				is_mouse_down = false;
-				focused.state = false;
-				pan.state = false;
+		function update_all_edge_lines(index) {
+			update_incoming_edge_lines(index);
+			update_outgoing_edge_lines(index);
+		}
+
+		function update_incoming_edge_lines(index) {
+			const record = records[index];
+			const x1 = record.circle.x;
+			const y1 = record.circle.y;
+			for (let i = 0; i < record.node.edges.incoming.length; i++) {
+				const edge = record.node.edges.incoming[i];
+				const target_record = records[edge.index];
+				const x0 = target_record.circle.x;
+				const y0 = target_record.circle.y;
+				const line_index = target_record.node.edges.outgoing.findIndex((x) => { return x.id === record.node.id; });
+				records[edge.index].lines[line_index].x0 = x0;
+				records[edge.index].lines[line_index].y0 = y0;
+				records[edge.index].lines[line_index].x1 = x1;
+				records[edge.index].lines[line_index].y1 = y1;
 			}
 		}
 
-		function get_mouse_position(e) {
-			const mouse_position = { x: 0, y: 0 };
-			const rect = canvas.getBoundingClientRect();
-			mouse_position.x = Math.round(e.x - rect.left);
-			mouse_position.y = Math.round(e.y - rect.top);
-			return mouse_position;
-		}
-
-		//detects whether the mouse cursor is between x and y relative to the radius specified
-		function intersects(circle, x, y) {
-			// subtract the x, y coordinates from the mouse position to get coordinates 
-			// for the hotspot location and check against the area of the radius
-			const areaX = x - circle.x;
-			const areaY = y - circle.y;
-			//return true if x^2 + y^2 <= radius squared.
-			return areaX * areaX + areaY * areaY <= circle.r * circle.r;
-		}
-
-		function update_target_lines(index) {
-			const x0 = records[index].circle.x;
-			const y0 = records[index].circle.y;
-			for (let i = 0; i < records[index].node.targets.length; i++) {
-				const target = records[index].node.targets[i];
-				const target_index = target.index;
-				const x1 = records[target_index].circle.x;
-				const y1 = records[target_index].circle.y;
+		function update_outgoing_edge_lines(index) {
+			const record = records[index];
+			const x0 = record.circle.x;
+			const y0 = record.circle.y;
+			for (let i = 0; i < record.node.edges.outgoing.length; i++) {
+				const edge = records[index].node.edges.outgoing[i];
+				const x1 = records[edge.index].circle.x;
+				const y1 = records[edge.index].circle.y;
 				records[index].lines[i].x0 = x0;
 				records[index].lines[i].y0 = y0;
 				records[index].lines[i].x1 = x1;

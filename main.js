@@ -11,10 +11,13 @@ const eStore = require('electron-store');
 const ipc = require('electron').ipcMain;
 const path = require('path');
 
-const { SEQUENCES } = require('./js/sequences.js');
 const { DATA } = require('./js/data.js');
-const sequences = new SEQUENCES();
+const { GRAPH } = require('./js/graph.js');
+const { SEQUENCES } = require('./js/sequences.js');
+const { SIGNALINK } = require('./database/signalink.js');
 const data = new DATA();
+const sequences = new SEQUENCES();
+const signalink = new SIGNALINK();
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
@@ -237,8 +240,11 @@ ipc.on('toMain', async (event, arg) => {
 		switch (arg.command) {
 
 			case 'open_signalink': {
-				await data.load_xlsx_file(arg.data.filePaths[0]);
-				win.main.webContents.send('toRender', { command: 'signalink', data: data.cargo });
+				await signalink.load_xlsx_file(arg.data.filePaths[0]);
+				const graph = signalink.export_as_graph();
+
+				win.main.webContents.send('toRender', { command: 'console.log', data: signalink.cargo });
+				win.main.webContents.send('toRender', { command: 'signalink', data: signalink.cargo });
 				break;
 			}
 	

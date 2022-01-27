@@ -2,16 +2,34 @@
 // data.js
 
 const { IO } = require('./io.js');
+const { PATHER } = require('./pather.js');
 const { XML } = require('./xml.js');
 const xlsx = require('xlsx');
 const io = new IO();
+const pather = new PATHER();
 const xml = new XML();
+
 
 function DATA() {
 
 	this.cargo = [];
 
 	this.clear = () => { this.cargo = []; }
+
+	this.clone = () => {
+		const d = new DATA();
+		d.cargo = this.clone_cargo();
+		return d;
+	}
+
+	this.clone_cargo = () => {
+		const c = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			const obj = JSON.parse(JSON.stringify(this.cargo[i]));
+			c.push(obj);
+		}
+		return c;
+	}
 
 	this.delete_columns_except = (...columns) => {
 		this.cargo = this.get_columns(...columns);
@@ -29,19 +47,25 @@ function DATA() {
 	}
 
 	this.load_csv_file = async (path) => {
-		const str = await io.read_file(path);
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		const str = await io.read_file(full_path);
 		this.cargo = parse(str, ',');
 		return true;
 	}
 
 	this.load_tsv_file = async (path) => {
-		const str = await io.read_file(path);
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		const str = await io.read_file(full_path);
 		this.cargo = parse(str, '\t');
 		return true;
 	}
 
 	this.load_xlsx_file = async (path) => {
-		const file = xlsx.readFile(path);
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		const file = xlsx.readFile(full_path);
 		this.cargo = [];
 		const sheets = file.SheetNames
 		for (let i = 0; i < sheets.length; i++) {
@@ -52,7 +76,9 @@ function DATA() {
 	}
 
 	this.load_xml_file = async (path) => {
-		const str = await io.read_file(path);
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		const str = await io.read_file(full_path);
 		this.cargo = xml.xml2json(str);
 		return true;
 	}
