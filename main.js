@@ -242,9 +242,9 @@ ipc.on('toMain', async (event, arg) => {
 			case 'open_signalink': {
 				await signalink.load_xlsx_file(arg.data.filePaths[0]);
 				const graph = signalink.export_as_graph();
-
-				win.main.webContents.send('toRender', { command: 'console.log', data: signalink.cargo });
-				win.main.webContents.send('toRender', { command: 'signalink', data: signalink.cargo });
+				graph.force_directed_layout_Ead84();
+				const json = graph.export_as_json();
+				win.main.webContents.send('toRender', { command: 'signalink', data: json });
 				break;
 			}
 	

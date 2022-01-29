@@ -24,14 +24,17 @@ function SIGNALINK() {
 		for (let i = 0; i < directory.length; i++) {
 			const node = new NODE();
 			node.id = directory[i];
+			node.index = i;
 			// find all outgoing edges
 			let records = this.cargo.filter((x) => { return x.source_uniprotAC === directory[i]; });
 			if (records.length) {
 				node.name = records[0].source_name;
 				for (let j = 0; j < records.length; j++) {
 					const edge = new EDGE();
-					edge.index = directory.indexOf(records[j].target_uniprotAC);
-					edge.id = records[j].target_uniprotAC;
+					edge.parent_id = directory[i];
+					edge.target_id = records[j].target_uniprotAC;
+					edge.parent_index = i;
+					edge.target_index = directory.indexOf(records[j].target_uniprotAC);
 					edge.type = 'outgoing';
 					node.edges.push(edge);
 				}
@@ -41,8 +44,10 @@ function SIGNALINK() {
 			if (records.length) {
 				for (let j = 0; j < records.length; j++) {
 					const edge = new EDGE();
-					edge.index = directory.indexOf(records[j].source_uniprotAC);
-					edge.id = records[j].source_uniprotAC;
+					edge.parent_id = directory[i];
+					edge.target_id = records[j].source_uniprotAC;
+					edge.parent_index = i;
+					edge.target_index = directory.indexOf(records[j].source_uniprotAC);
 					edge.type = 'incoming';
 					node.edges.push(edge);
 				}
