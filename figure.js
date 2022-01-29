@@ -19,8 +19,8 @@ function CIRCLE(context, x, y, radius, fill, stroke) {
 	this.y = y;
 	this.radius = radius;
 	this.fill = fill;
-	this.shadowBlur = 10;
-	this.shadowColor = 'black';
+	this.shadowBlur = radius * 2;
+	this.shadowColor = 'white';
 	this.stroke = stroke;
 
 	this.is_visible = () => {
@@ -34,14 +34,14 @@ function CIRCLE(context, x, y, radius, fill, stroke) {
 	}
 	
 	this.draw = () => {
-		this.context.beginPath();
-		this.context.arc(this.x, this.y, this.radius, this.startingAngle, this.endAngle);
 		this.context.fillStyle = this.fill;
 		this.context.lineWidth = 3;
-		this.context.fill();
-		this.context.strokeStyle = this.stroke;
 		this.context.shadowBlur = this.shadowBlur;
 		this.context.shadowColor = this.shadowColor;
+		this.context.strokeStyle = this.stroke;
+		this.context.beginPath();
+		this.context.arc(this.x, this.y, this.radius, this.startingAngle, this.endAngle);
+		this.context.fill();
 		this.context.stroke();
 	}
 
@@ -61,6 +61,8 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 	this.y0 = y0;
 	this.x1 = x1;
 	this.y1 = y1;
+	this.shadowBlur = 0;
+	this.shadowColor = 'transparent';
 	this.stroke = stroke;
 	this.thickness = thickness;
 
@@ -73,12 +75,13 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 	}
 
 	this.draw = () => {
-		this.context.beginPath();
-		this.context.strokeStyle = this.stroke;
 		this.context.lineWidth = this.thickness;
+		this.context.shadowBlur = this.shadowBlur;
+		this.context.shadowColor = this.shadowColor;
+		this.context.strokeStyle = this.stroke;
+		this.context.beginPath();
 		this.context.moveTo(this.x0, this.y0);
 		this.context.lineTo(this.x1, this.y1);
-		this.context.closePath();
 		this.context.stroke();
 	}
 

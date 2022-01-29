@@ -22,6 +22,19 @@ function EDGE() {
 
 }
 
+function FDL_OPTIONS() {
+	// Standardized force-directed layout function options.
+	//	Note: Not all options might be used by specific
+	//	force-directed algorithms.
+	this.damping = 0.99;
+	this.pixels_per_unit = 20;
+	this.force_threshold = 1.00;
+	this.ideal_spring_length = 15.00;
+	this.max_iterations = 10000;
+	this.repulsion_constant = 250.00;
+	this.spring_constant = 2.0;
+}
+
 function NODE() {
 	this.attraction = { x: 0, y: 0 };
 	this.id = '';
@@ -91,108 +104,128 @@ function GRAPH() {
 		return JSON.stringify(this.cargo);
 	}
 
-	this.force_directed_layout_Ead84 = () => {
+	this.force_directed_layout_Ead84 = (options) => {
 		// Eades 1984
-		let damping = 1.00;
-		const force_threshold = 1.00;
-		const ideal_spring_length = 0.01;
-		const max_iterations = 1000;
-		const pixels_per_unit = 10;
-		const repulsion_constant = 2.00;
-		const spring_constant = 1.0;
-		let t = 1;
+		//	repulsive force:
+		//		f_rep(u, v) = [repulsion constant / (Euclidean distance)^2] * unit vector_vu
+		//	spring force:
+		//		f_spring(u, v) = spring_constant * log(Euclidean distance / ideal spring length) * unit vector_uv
+		//	attractive force:
+		//		f_att(u, v) = f_spring(u, v) - f_rep(u, v)
+		//	total force:
+		//		f_total() = summation(f_att(u, v)) + summation(f_rep(u, v)) * damping
 
-		while (t < max_iterations) {
+		options = options || new FDL_OPTIONS();
+		let debug = false;
+		let iteration = 1;
+
+		while (iteration < options.max_iterations) {
+			if (debug) { console.log('Iteration: ' + iteration); }
 			let max_force = -Infinity;
-			for (let i = 0; i < this.cargo.length; i++) {
-				console.log('Time: ' + t + ', Index i: ' + i);
-				this.cargo[i].attraction.x = 0.0;
-				this.cargo[i].attraction.y = 0.0;
-				this.cargo[i].repulsion.x = 0.0;
-				this.cargo[i].repulsion.y = 0.0;
+			for (let u = 0; u < this.cargo.length; u++) {
+				this.cargo[u].attraction.x = 0.0;
+				this.cargo[u].attraction.y = 0.0;
+				this.cargo[u].repulsion.x = 0.0;
+				this.cargo[u].repulsion.y = 0.0;
 				// calculate the repuslive force for each node
-				for (let j = 0; j < this.cargo.length; j++) {
-					if (i !== j) {
-						let sum = 0;
-						const node_i = this.cargo[i];
-						const node_j = this.cargo[j];
-						// find the Euclidean distance between nodes i and j
-						const delta_x = (node_j.x - node_i.x) / pixels_per_unit;
-						const delta_y = (node_j.y - node_i.y) / pixels_per_unit;
-						sum += (delta_x * delta_x);
-						sum += (delta_y * delta_y);
-						sum = sum || 1.0;
-						const distance = Math.sqrt(sum);
-						// find the unit vector between nodes i and j
-						const unit_r = { x: 0, y: 0 }
-						const vector_r = { x: 0, y: 0 }
-						vector_r.x = node_i.x - node_j.x;
-						vector_r.y = node_i.y - node_j.y;
-						const magnitude_r = Math.sqrt((vector_r.x * vector_r.x) + (vector_r.y * vector_r.y)) || 1;
-						unit_r.x = vector_r.x / magnitude_r;
-						unit_r.y = vector_r.y / magnitude_r;
+				for (let v = 0; v < this.cargo.length; v++) {
+					if (u !== v) {
+						
+						const attraction = { x: 0, y: 0 };
+						const node_u = this.cargo[u].clone();
+						const node_v = this.cargo[v].clone();
+						const repulsion = { x: 0, y: 0 };
+						const unit_uv = { x: 0, y: 0 };
+						const unit_vu = { x: 0, y: 0 };
+						const vector_uv = { x: 0, y: 0 };
+						const vector_vu = { x: 0, y: 0 };
+						node_u.x = this.cargo[u].x / options.pixels_per_unit;
+						node_u.y = this.cargo[u].y / options.pixels_per_unit;
+						node_v.x = this.cargo[v].x / options.pixels_per_unit;
+						node_v.y = this.cargo[v].y / options.pixels_per_unit;
+
+						// find the Euclidean distance between nodes u and v
+						const delta_x = (node_v.x - node_u.x);
+						const delta_y = (node_v.y - node_u.y);
+						const distance = Math.sqrt((delta_x * delta_x) + (delta_y * delta_y)) || 1.0;
+
+						// find the unit vectors for uv and vu
+						vector_uv.x = (node_v.x - node_u.x);
+						vector_uv.y = (node_v.y - node_u.y);
+						vector_vu.x = (node_v.x - node_u.x) * -1.0;
+						vector_vu.y = (node_v.y - node_u.y) * -1.0;
+						unit_vu.x = vector_vu.x / distance;
+						unit_vu.y = vector_vu.y / distance;
+						unit_uv.x = vector_uv.x / distance;
+						unit_uv.y = vector_uv.y / distance;						
+
 						// find the repulsive force
-						const factor_r = repulsion_constant / (distance * distance);
-						const r_x = factor_r * unit_r.x;
-						const r_y = factor_r * unit_r.y;
-						const repulsion = { x: r_x, y: r_y };
-						this.cargo[i].repulsion.x += repulsion.x;
-						this.cargo[i].repulsion.y += repulsion.y;
-						/*
-						console.log('Node i: { x: ' + node_i.x + ', y: ' + node_i.y + ' }');
-						console.log('Node j: { x: ' + node_j.x + ', y: ' + node_j.y + ' }');
-						console.log('======================');
-						console.log('Vector from j to i: { x: ' + vector_r.x + ', y: ' + vector_r.y + ' }');
-						console.log('Magnitude: ' + magnitude_r);
-						console.log('Unit vector from j to i: { x: ' + unit_r.x + ', y: ' + unit_r.y + ' }');
-						console.log('Factor: ' + factor_r);
-						console.log('Repulsion force: { x: ' + repulsion.x + ', y: ' + repulsion.y + ' }');
-						*/
-						// calculate the attractive force for adjacent nodes
-						if (node_i.is_adjacent(j)) {
-							const vector_a = { x: 0, y: 0 }
-							const unit_a = { x: 0, y: 0 }
-							vector_a.x = (node_j.x - node_i.x) * pixels_per_unit;
-							vector_a.y = (node_j.y - node_i.y) / pixels_per_unit;
-							const magnitude_a = Math.sqrt((vector_a.x * vector_a.x) + (vector_a.y * vector_a.y)) || 1;
-							unit_a.x = vector_a.x / magnitude_a;
-							unit_a.y = vector_a.y / magnitude_a;
-							const factor_a = spring_constant * Math.log(distance / ideal_spring_length);
-							const a_x = (factor_a * unit_a.x) - repulsion.x;
-							const a_y = (factor_a * unit_a.y) - repulsion.y;
-							const attraction = { x: a_x, y: a_y }
-							this.cargo[i].attraction.x += attraction.x;
-							this.cargo[i].attraction.y += attraction.y;
-							/*
+						const repulsion_factor = options.repulsion_constant / (distance * distance);
+						repulsion.x = repulsion_factor * unit_vu.x;
+						repulsion.y = repulsion_factor * unit_vu.y;
+						this.cargo[u].repulsion.x += repulsion.x;
+						this.cargo[u].repulsion.y += repulsion.y;
+						
+						if (debug) {
 							console.log('======================');
-							console.log('Vector from i to j: { x: ' + vector_a.x + ', y: ' + vector_a.y + ' }');
-							console.log('Magnitude: ' + magnitude_a);
-							console.log('Unit vector from i to j: { x: ' + unit_a.x + ', y: ' + unit_a.y + ' }');
-							console.log('Factor: ' + factor_a);
-							console.log('Attraction force: { x: ' + attraction.x + ', y: ' + attraction.y + ' }');
-							console.log(' ');
-							console.log(dkjhfjkds.dsfjhkj);
-							*/
+							console.log('Node u: { x: ' + node_u.x + ', y: ' + node_u.y + ' }');
+							console.log('Node v: { x: ' + node_v.x + ', y: ' + node_v.y + ' }');
+							console.log('======================');
+							console.log('Distance: ' + distance);
+							console.log('Vector from u to v: { x: ' + vector_uv.x + ', y: ' + vector_uv.y + ' }');
+							console.log('Unit vector from u to v: { x: ' + unit_uv.x + ', y: ' + unit_uv.y + ' }');
+							console.log('Vector from v to u: { x: ' + vector_vu.x + ', y: ' + vector_vu.y + ' }');
+							console.log('Unit vector from v to u: { x: ' + unit_vu.x + ', y: ' + unit_vu.y + ' }');
+							console.log('======================');
+							console.log('Repulsion factor: ' + repulsion_factor);
+							console.log('Repulsion force: { x: ' + repulsion.x + ', y: ' + repulsion.y + ' }');
+						}
+
+						// calculate the attractive force for adjacent nodes
+						if (node_u.is_adjacent(v)) {
+
+							const attraction_factor = options.spring_constant * Math.log(distance / options.ideal_spring_length);
+							attraction.x = (attraction_factor * unit_uv.x) - repulsion.x;
+							attraction.y = (attraction_factor * unit_uv.y) - repulsion.y;
+							this.cargo[u].attraction.x += attraction.x;
+							this.cargo[u].attraction.y += attraction.y;
+							
+							if (debug) {
+								console.log('======================');
+								console.log('Attraction factor: ' + attraction_factor);
+								console.log('Attraction force: { x: ' + attraction.x + ', y: ' + attraction.y + ' }');
+								console.log('======================');
+								console.log(' ');
+								console.log(dkjhfjkds.dsfjhkj);
+							}
+
 						}
 					}
-				}
-				this.cargo[i].force.x = (this.cargo[i].repulsion.x + this.cargo[i].attraction.x) * damping;
-				this.cargo[i].force.y = (this.cargo[i].repulsion.y + this.cargo[i].attraction.y) * damping;
-				const force_magnitude = Math.sqrt((this.cargo[i].force.x * this.cargo[i].force.x) + (this.cargo[i].force.y * this.cargo[i].force.y));
+				} // done comparing u node to all v nodes
+
+				this.cargo[u].force.x = (this.cargo[u].repulsion.x + this.cargo[u].attraction.x) * options.damping;
+				this.cargo[u].force.y = (this.cargo[u].repulsion.y + this.cargo[u].attraction.y) * options.damping;
+				const force_magnitude = Math.round(Math.sqrt((this.cargo[u].force.x * this.cargo[u].force.x) + (this.cargo[u].force.y * this.cargo[u].force.y)));
 				if (force_magnitude > max_force) { max_force = force_magnitude; }
-			}
+
+			} // done searching all u nodes
+
+			// convert back to screen scale
 			for (let i = 0; i < this.cargo.length; i++) {
-				this.cargo[i].x += this.cargo[i].force.x * pixels_per_unit;
-				this.cargo[i].y += this.cargo[i].force.y * pixels_per_unit;
+				this.cargo[i].x += this.cargo[i].force.x * options.pixels_per_unit;
+				this.cargo[i].y += this.cargo[i].force.y * options.pixels_per_unit;
 			}
-			damping = damping * damping;
-			if (max_force < force_threshold) {
-				console.log('Tiny force!');
+
+			options.damping = options.damping * options.damping;
+			if (max_force < options.force_threshold) {
+				if (debug) { console.log('Tiny force!'); }
 				return;
 			}
-			t = t + 1;
-		}
-		console.log('Maximum time passed!');
+			iteration = iteration + 1;
+		
+		} // while loop
+
+		if (debug) { console.log('Maximum time passed!'); }
 		return;
 	}
 
