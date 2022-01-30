@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// graph.js
+// figure.js
 
 ///////////////////////////////////////////////////////////////////////////////
 // PART 1: CANVAS ELEMENTS ////////////////////////////////////////////////////
@@ -104,6 +104,58 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 
 }
 
+function MOUSE(canvas) {
+
+	this.canvas = canvas || undefined;
+	this.x = 0;
+	this.y = 0;
+
+	// states
+	this.left_button_is_down = false;
+	this.right_button_is_down = false;
+
+	// actions
+	this.left_button_action = undefined;
+	this.movement_action = undefined;
+	this.right_button_action = undefined;
+	this.scroll_action = undefined;
+
+	document.addEventListener('mousedown', get_mouse_button_state, false);
+	document.addEventListener('mousemove', get_mouse_movement, false);
+	document.addEventListener('mouseup', get_mouse_button_state, false);
+	document.addEventListener('wheel', get_mouse_button_state, false);
+
+	function get_mouse_button_state(e) {
+		switch (e.type) {
+
+			case 'mousedown': {
+				if (e.button === 0) { this.left_button_is_down = true; }
+				if (e.button === 2) { this.right_button_is_down = true; }
+				break;
+			}
+			case 'mouseup': {
+				if (e.button === 0) { this.left_button_is_down = false; }
+				if (e.button === 2) { this.right_button_is_down = false; }
+				break;
+			}
+			case 'wheel': {
+				break;
+			}
+		}
+	}
+
+	function get_mouse_movement(e) {
+		this.x = e.x;
+		this.y = e.y;
+		if (canvas) {
+			const rect = canvas.getBoundingClientRect();
+			this.x = Math.round(e.x - rect.left);
+			this.y = Math.round(e.y - rect.top);
+		}
+	}
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PART 2: DATA STRUCTURES ////////////////////////////////////////////////////
 
@@ -154,29 +206,29 @@ function FIGURE() {
 
 	this.network_diagram = (json) => {
 
+		let is_mouse_down = false;
+		const focused = { highlighted: false, key: -1, state: false }
+		const mouse = new MOUSE();
 		const nodes = JSON.parse(json);
 		const pan = { start_x: 0, start_y: 0, state: false }
-		const focused = { highlighted: false, key: -1, state: false }
-		let is_mouse_down = false;
+		const records = [];
+
 		const canvas = document.createElement('canvas');
 		canvas.width = document.body.clientWidth;
 		canvas.height = window_height;
 		const context = canvas.getContext("2d");
-		document.addEventListener('mousedown', get_mouse_button_state, false);
-		document.addEventListener('mousemove', mouse_move, false);
-		document.addEventListener('mouseup', get_mouse_button_state, false);
-		document.addEventListener('wheel', mouse_zoom, false);
+		
+		//document.addEventListener('mousedown', get_mouse_button_state, false);
+		//document.addEventListener('mousemove', mouse_move, false);
+		//document.addEventListener('mouseup', get_mouse_button_state, false);
+		//document.addEventListener('wheel', mouse_zoom, false);
 
 		// create the records
-		const records = [];
 		for (let i = 0; i < nodes.length; i++) {
 			const record = new NETWORK_RECORD(context, nodes[i]);
 			records.push(record);
 		}
 		update_all_lines();
-
-		// draw the network
-		console.log('Done!');
 		draw_figure();
 
 		///////////////////////////////////////////////////////////////////////////
@@ -198,13 +250,11 @@ function FIGURE() {
 				records[i].circle.draw(highlight);
 			}
 		}
-
+/*
 		function get_mouse_button_state(e) {
-			const t = e.type;
-			if (t === "mousedown") {
-				is_mouse_down = true;
-			}
-			else if (t === "mouseup") {
+			const state = e.type;
+			if (state === 'mousedown') { is_mouse_down = true; }
+			else if (state === 'mouseup') {
 				is_mouse_down = false;
 				focused.state = false;
 				pan.state = false;
@@ -219,10 +269,11 @@ function FIGURE() {
 			return mouse_position;
 		}
 
-		function is_mouse_over(circle, x, y) {
-			const areaX = x - circle.x;
-			const areaY = y - circle.y;
-			return areaX * areaX + areaY * areaY <= circle.radius * circle.radius;
+		function is_mouse_over(circle) {
+			const mouse_position = get_mouse_position();
+			const delta_x = mouse_position.x - circle.x;
+			const delta_y = mouse_position.y - circle.y;
+			return (delta_x * delta_x) + (delta_y * delta_y) <= (circle.radius * circle.radius);
 		}
 
 		function mouse_move(e) {
@@ -230,7 +281,7 @@ function FIGURE() {
 			const mouse_position = get_mouse_position(e);
 			// if any circle is focused
 			if (focused.state) {
-				if (focused.key > 0 && !records[focused.key].node.locked) {
+				if (focused.key > -1 && !records[focused.key].node.locked) {
 					records[focused.key].set_coordinates(mouse_position.x, mouse_position.y);
 					update_all_lines();
 					draw_figure();
@@ -240,7 +291,7 @@ function FIGURE() {
 			// no node is currently focused check if node is hovered
 			for (let i = 0; i < records.length; i++) {
 				if (records[i].circle.is_visible()) {
-					if (is_mouse_over(records[i].circle, mouse_position.x, mouse_position.y)) {
+					if (is_mouse_over(records[i].circle)) {
 						focused.key = i;
 						focused.highlighted = true;
 						focused.state = true;
@@ -285,7 +336,7 @@ function FIGURE() {
 			update_all_lines();
 			draw_figure();
 		}
-
+*/
 		function update_all_lines() {
 			for (let i = 0; i < records.length; i++) {
 				update_lines(i);
