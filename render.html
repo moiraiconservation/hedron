@@ -42,6 +42,7 @@
 					// core commands
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
+					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
 					case 'initialize': {
 						window_height = arg.height;
 						window_width = arg.width;

@@ -33,12 +33,21 @@ function CIRCLE(context, x, y, radius, fill, stroke) {
 		return true;
 	}
 	
-	this.draw = () => {
-		this.context.fillStyle = this.fill;
+	this.draw = (highlight) => {
+
+		if (highlight) {
+			this.context.fillStyle = '#c90e8f';
+			this.context.shadowBlur = this.radius * 3;
+			this.context.shadowColor = '#c90e8f';
+			this.context.strokeStyle = '#c90e8f';
+		}
+		else {
+			this.context.fillStyle = this.fill;
+			this.context.shadowBlur = this.shadowBlur;
+			this.context.shadowColor = this.shadowColor;
+			this.context.strokeStyle = this.stroke;
+		}
 		this.context.lineWidth = 3;
-		this.context.shadowBlur = this.shadowBlur;
-		this.context.shadowColor = this.shadowColor;
-		this.context.strokeStyle = this.stroke;
 		this.context.beginPath();
 		this.context.arc(this.x, this.y, this.radius, this.startingAngle, this.endAngle);
 		this.context.fill();
@@ -74,11 +83,19 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 		return false;
 	}
 
-	this.draw = () => {
+	this.draw = (highlight) => {
+		
+		if (highlight) {
+			this.context.shadowBlur = 2;
+			this.context.shadowColor = '#c90e8f';
+			this.context.strokeStyle = '#c90e8f';
+		}
+		else {
+			this.context.shadowBlur = this.shadowBlur;
+			this.context.shadowColor = this.shadowColor;
+			this.context.strokeStyle = this.stroke;
+		}
 		this.context.lineWidth = this.thickness;
-		this.context.shadowBlur = this.shadowBlur;
-		this.context.shadowColor = this.shadowColor;
-		this.context.strokeStyle = this.stroke;
 		this.context.beginPath();
 		this.context.moveTo(this.x0, this.y0);
 		this.context.lineTo(this.x1, this.y1);
@@ -103,13 +120,25 @@ function NETWORK_RECORD(context, node) {
 	}
 
 	this.offset_coordinates = (x, y) => {
+		x = x || 0;
+		y = y || 0;
 		this.node.x += x;
 		this.node.y += y;
 		this.circle.x += x;
 		this.circle.y += y;
 	}
 
+	this.scale_coordinates = (scale) => {
+		scale = scale || 1.0;
+		this.node.x *= scale;
+		this.node.y *= scale;
+		this.circle.x *= scale;
+		this.circle.y *= scale;
+	}
+
 	this.set_coordinates = (x, y) => {
+		x = x || 0;
+		y = y || 0;
 		this.node.x = x;
 		this.node.y = y;
 		this.circle.x = x;
@@ -127,7 +156,7 @@ function FIGURE() {
 
 		const nodes = JSON.parse(json);
 		const pan = { start_x: 0, start_y: 0, state: false }
-		const focused = { key: 0, state: false }
+		const focused = { highlighted: false, key: -1, state: false }
 		let is_mouse_down = false;
 		const canvas = document.createElement('canvas');
 		canvas.width = document.body.clientWidth;
@@ -155,17 +184,26 @@ function FIGURE() {
 
 		function draw_figure() {
 			context.clearRect(0, 0, canvas.width, canvas.height);
+			let highlight = false;
 			for (let i = 0; i < records.length; i++) {
+				if (focused.state && focused.key === i) { highlight = true; }
+				else { highlight = false; }
 				for (let j = 0; j < records[i].lines.length; j++) {
-					records[i].lines[j].draw();
+					records[i].lines[j].draw(highlight);
 				}
 			}
-			for (let i = 0; i < records.length; i++) { records[i].circle.draw(); }
+			for (let i = 0; i < records.length; i++) {
+				if (focused.state && focused.key === i) { highlight = true; }
+				else { highlight = false; }
+				records[i].circle.draw(highlight);
+			}
 		}
 
 		function get_mouse_button_state(e) {
 			const t = e.type;
-			if (t === "mousedown") { is_mouse_down = true; }
+			if (t === "mousedown") {
+				is_mouse_down = true;
+			}
 			else if (t === "mouseup") {
 				is_mouse_down = false;
 				focused.state = false;
@@ -192,16 +230,19 @@ function FIGURE() {
 			const mouse_position = get_mouse_position(e);
 			// if any circle is focused
 			if (focused.state) {
-				records[focused.key].set_coordinates(mouse_position.x, mouse_position.y);
-				update_all_lines();
-				draw_figure();
+				if (focused.key > 0 && !records[focused.key].node.locked) {
+					records[focused.key].set_coordinates(mouse_position.x, mouse_position.y);
+					update_all_lines();
+					draw_figure();
+				}
 				return;
 			}
-			// no circle currently focused check if circle is hovered
+			// no node is currently focused check if node is hovered
 			for (let i = 0; i < records.length; i++) {
 				if (records[i].circle.is_visible()) {
 					if (is_mouse_over(records[i].circle, mouse_position.x, mouse_position.y)) {
 						focused.key = i;
+						focused.highlighted = true;
 						focused.state = true;
 						return;
 					}

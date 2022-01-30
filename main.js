@@ -15,9 +15,11 @@ const { DATA } = require('./js/data.js');
 const { GRAPH } = require('./js/graph.js');
 const { SEQUENCES } = require('./js/sequences.js');
 const { SIGNALINK } = require('./database/signalink.js');
+const { STATS } = require('./js/stats.js');
 const data = new DATA();
 const sequences = new SEQUENCES();
 const signalink = new SIGNALINK();
+const stats = new STATS();
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
@@ -242,8 +244,10 @@ ipc.on('toMain', async (event, arg) => {
 			case 'open_signalink': {
 				await signalink.load_xlsx_file(arg.data.filePaths[0]);
 				const graph = signalink.export_as_graph();
-				graph.force_directed_layout_Ead84();
+				graph.force_directed_layout();
+				graph.save_as_json(signalink.path);
 				const json = graph.export_as_json();
+				win.main.webContents.send('toRender', { command: 'console.log json', data: json });
 				win.main.webContents.send('toRender', { command: 'signalink', data: json });
 				break;
 			}

@@ -8,6 +8,7 @@ const data = new DATA();
 function SIGNALINK() {
 
 	this.cargo = [];
+	this.path = '';
 
 	this.clear = () => { this.cargo = []; }
 
@@ -54,10 +55,12 @@ function SIGNALINK() {
 			}
 			graph.add(node);
 		}
+		graph.make_2d();
 		return graph;
 	}
 
 	this.load_xlsx_file = async (path) => {
+		this.path = path;
 		await data.load_xlsx_file(path);
 		this.cargo = data.clone_cargo();
 	}
