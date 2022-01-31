@@ -245,7 +245,7 @@ ipc.on('toMain', async (event, arg) => {
 				await signalink.load_xlsx_file(arg.data.filePaths[0]);
 				const graph = signalink.export_as_graph();
 				graph.force_directed_layout();
-				graph.save_as_json(signalink.path);
+				//graph.save_as_json(signalink.path);
 				const json = graph.export_as_json();
 				win.main.webContents.send('toRender', { command: 'console.log json', data: json });
 				win.main.webContents.send('toRender', { command: 'signalink', data: json });
