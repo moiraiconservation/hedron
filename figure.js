@@ -75,14 +75,6 @@ function LINE(context, x0, y0, x1, y1, stroke, thickness) {
 	this.stroke = stroke;
 	this.thickness = thickness;
 
-	this.is_visible = () => {
-		const width = this.context.canvas.width;
-		const height = this.context.canvas.height;
-		if ((this.x0 >= 0 && this.x0 <= width) && (this.y0 >= 0 && this.y0 <= height)) { return true; }
-		if ((this.x1 >= 0 && this.x1 <= width) && (this.y1 >= 0 && this.y1 <= height)) { return true; }
-		return false;
-	}
-
 	this.draw = (color) => {
 		
 		if (color) {
@@ -116,11 +108,10 @@ function MOUSE(canvas) {
 	document.addEventListener('mousemove', get_mouse_movement.bind(this), false);
 	document.addEventListener('mouseup', get_mouse_button_state.bind(this), false);
 
-	this.over_canvas = () => {
+	this.is_over_canvas = () => {
 		if (canvas) {
-			const rect = canvas.getBoundingClientRect();
-			if (this.x >= rect.left && this.x <= rect.right) {
-				if (this.y >= rect.top && this.y <= rect.bottom) { return true; }
+			if (this.x >= 0 && this.x <= this.canvas.width) {
+				if (this.y >= 0 && this.y <= this.canvas.height) { return true; }
 			}
 		}
 		return false;
@@ -159,17 +150,18 @@ function MOUSE(canvas) {
 
 function NETWORK_RECORD(context, node) {
 	this.context = context;
-	this.circle = new CIRCLE(this.context, node.x, node.y, node.radius);
 	this.lines = [];
 	this.node = node; // this element is expected to be a NODE object from graph.js
-	if (this.node.edges) {
+	this.circle = new CIRCLE(this.context, node.x, node.y, node.radius);
+	if (this.node.edges.length) {
 		for (let i = 0; i < this.node.edges.length; i++) {
-			const line = new LINE(this.context, this.circle.x, this.circle.y);
+			const line = new LINE(this.context, this.node.x, this.node.y);
 			this.lines.push(line);
 		}
 	}
 
 	this.display_name = () => {
+		const name = this.node.name || '?';
 		let alpha = (this.circle.radius - 10) / 15;
 		alpha = Math.min(Math.max(alpha, 0.0), 1.0).toFixed(2);
 		const font_size = Math.floor(this.circle.radius * 1.33).toString();
@@ -179,7 +171,7 @@ function NETWORK_RECORD(context, node) {
 		this.context.shadowColor = 'rgba(0, 0, 0, ' + alpha + ')';
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
-		this.context.fillText(this.node.name, this.circle.x, this.circle.y);
+		this.context.fillText(name, this.circle.x, this.circle.y);
 	}
 
 	this.offset_coordinates = (x, y) => {
@@ -193,10 +185,10 @@ function NETWORK_RECORD(context, node) {
 
 	this.scale_coordinates = (scale) => {
 		scale = scale || 1.0;
-		this.node.x *= scale;
-		this.node.y *= scale;
-		this.circle.x *= scale;
-		this.circle.y *= scale;
+		this.node.x = Math.round(this.node.x * scale);
+		this.node.y = Math.round(this.node.y * scale);
+		this.circle.x = Math.round(this.circle.x * scale);
+		this.circle.y = Math.round(this.circle.y * scale);
 	}
 
 	this.set_coordinates = (x, y) => {
@@ -215,66 +207,69 @@ function NETWORK_RECORD(context, node) {
 
 function FIGURE() {
 
-	this.network_diagram = (json) => {
+	this.NETWORK = function (json) {
+		
+		this.cargo = [];
+		this.canvas = document.createElement('canvas');
+		this.canvas.width = document.body.clientWidth;
+		this.canvas.height = window_height;
+		const context = this.canvas.getContext('2d');
 
+		const mouse = new MOUSE(this.canvas);
 		const drag = { index: -1, state: false }
 		const highlight = { index: -1, state: false }
-		const nodes = JSON.parse(json);
 		const pan = { start_x: 0, start_y: 0, state: false, x: 0, y: 0 }
-		const records = [];
 		let targets = [];
 		
-		const canvas = document.createElement('canvas');
-		canvas.width = document.body.clientWidth;
-		canvas.height = window_height;
-		const context = canvas.getContext("2d");
-		const mouse = new MOUSE(canvas);
-
-		document.addEventListener('mousedown', mouse_button, false);
-		document.addEventListener('mousemove', mouse_move, false);
-		document.addEventListener('mouseup', mouse_button, false);
-		document.addEventListener('wheel', mouse_zoom, false);
-
 		// create the records
-		for (let i = 0; i < nodes.length; i++) {
-			const record = new NETWORK_RECORD(context, nodes[i]);
-			records.push(record);
+		if (json) {
+			const nodes = JSON.parse(json);
+			for (let i = 0; i < nodes.length; i++) {
+				const record = new NETWORK_RECORD(context, nodes[i]);
+				this.cargo.push(record);
+			}
 		}
-		update_all_lines();
-		draw_figure();
-
+		
 		///////////////////////////////////////////////////////////////////////////
-		// METHODS ////////////////////////////////////////////////////////////////
+		// PRIVATE METHODS ////////////////////////////////////////////////////////
 
-		function draw_figure() {
-			context.clearRect(0, 0, canvas.width, canvas.height);
-			let color = '';
-			for (let i = 0; i < records.length; i++) {
-				if (highlight.state && highlight.index === i) { color = '#c90e8f'; } else { color = ''; }
-				for (let j = 0; j < records[i].lines.length; j++) { records[i].lines[j].draw(color); }
+		const draw = () => {
+			context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			// draw lines
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (!highlight.state || highlight.index !== i) {
+					for (let j = 0; j < this.cargo[i].lines.length; j++) { this.cargo[i].lines[j].draw(); }
+				}
 			}
-			for (let i = 0; i < records.length; i++) {
-				if (targets.includes(i)) { color = '#ff89ef' }
-				else if (highlight.state && highlight.index === i) { color = '#c90e8f'; } else { color = ''; }
-				records[i].circle.draw(color);
-				records[i].display_name();
+			// draw highlighted lines
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (highlight.state && highlight.index === i) {
+					for (let j = 0; j < this.cargo[i].lines.length; j++) { this.cargo[i].lines[j].draw('#c90e8f'); }
+				}
+			}
+			// draw circles
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (targets.includes(i)) { this.cargo[i].circle.draw('#ff89ef'); }
+				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw('#c90e8f'); }
+				else { this.cargo[i].circle.draw(); }
+				if (this.cargo[i].circle.radius >= 10) { this.cargo[i].display_name(); }
 			}
 		}
 
-		function is_mouse_over(circle) {
+		const is_mouse_over_circle = (circle) => {
 			const delta_x = mouse.x - circle.x;
 			const delta_y = mouse.y - circle.y;
 			return (delta_x * delta_x) + (delta_y * delta_y) <= (circle.radius * circle.radius);
 		}
 
-		function mouse_button(e) {
-			if (!mouse.over_canvas()) { return; }
+		const mouse_button = (e) => {
+			if (!mouse.is_over_canvas()) { return; }
 			switch (e.type) {
 				case 'mousedown': {
 					// check to see if the mouse if over a circle
-					for (let i = 0; i < records.length; i++) {
-						if (records[i].circle.is_visible()) {
-							if (is_mouse_over(records[i].circle)) {
+					for (let i = 0; i < this.cargo.length; i++) {
+						if (this.cargo[i].circle.is_visible()) {
+							if (is_mouse_over_circle(this.cargo[i].circle)) {
 								drag.index = i;
 								drag.state = true;
 								highlight.index = i;
@@ -282,10 +277,10 @@ function FIGURE() {
 								pan.index = -1;
 								pan.state = false;
 								targets = [];
-								for (let j = 0; j < records[i].node.edges.length; j++) {
-									targets.push(records[i].node.edges[j].target_index);
+								for (let j = 0; j < this.cargo[i].node.edges.length; j++) {
+									targets.push(this.cargo[i].node.edges[j].target_index);
 								}
-								draw_figure();
+								draw();
 								return;
 							}
 						}
@@ -314,26 +309,26 @@ function FIGURE() {
 							targets = [];
 						}
 					}
-					draw_figure();
+					draw();
 					break;
 				}
 			}
 			return;
 		}
 
-		function mouse_move() {
+		const mouse_move = () => {
 			// Check to see that the mouse is over the canvas and
 			//	the left mouse button is down
-			if (!mouse.over_canvas()) { return; }
+			if (!mouse.is_over_canvas()) { return; }
 			if (!mouse.left_button_is_down) {	return; }
 
 			// The left mouse button is down.
 			// check to see if any circle should be dragged
 			if (drag.state) {
-				if (drag.index > -1 && !records[drag.index].node.locked) {
-					records[drag.index].set_coordinates(mouse.x, mouse.y);
-					update_all_lines();
-					draw_figure();
+				if (drag.index > -1 && !this.cargo[drag.index].node.locked) {
+					this.cargo[drag.index].set_coordinates(mouse.x, mouse.y);
+					update_lines();
+					draw();
 				}
 				return;
 			}
@@ -342,18 +337,18 @@ function FIGURE() {
 			if (pan.state) {
 				const delta_x = mouse.x - pan.x;
 				const delta_y = mouse.y - pan.y;
-				for (let i = 0; i < records.length; i++) {
-					records[i].offset_coordinates(delta_x, delta_y);
+				for (let i = 0; i < this.cargo.length; i++) {
+					this.cargo[i].offset_coordinates(delta_x, delta_y);
 				}
-				update_all_lines();
-				draw_figure();
+				update_lines();
+				draw();
 				pan.x = mouse.x;
 				pan.y = mouse.y;
 			}
 		}
 
-		function mouse_zoom(e) {
-			if (!mouse.over_canvas()) { return; }
+		const mouse_zoom = (e) => {
+			if (!mouse.is_over_canvas()) { return; }
 			const zoom = e.deltaY;
 			const zoom_delta = 0.05;
 			const zoom_in = 1.00 + zoom_delta;
@@ -361,48 +356,41 @@ function FIGURE() {
 			let scale = 1.00;
 			if (zoom < 0) { scale = zoom_in; }
 			else { scale = zoom_out; }
-			for (let i = 0; i < records.length; i++) {
-				let delta_x = (records[i].circle.x - mouse.x) * scale;
-				let delta_y = (records[i].circle.y - mouse.y) * scale;
-				records[i].set_coordinates(mouse.x + delta_x, mouse.y + delta_y);
-				records[i].circle.radius *= scale;
+			for (let i = 0; i < this.cargo.length; i++) {
+				let delta_x = (this.cargo[i].circle.x - mouse.x) * scale;
+				let delta_y = (this.cargo[i].circle.y - mouse.y) * scale;
+				this.cargo[i].set_coordinates(mouse.x + delta_x, mouse.y + delta_y);
+				this.cargo[i].circle.radius = this.cargo[i].circle.radius * scale;
 			}
-			update_all_lines();
-			draw_figure();
+			update_lines();
+			draw();
 		}
-
-		function update_all_lines() {
-			for (let i = 0; i < records.length; i++) {
-				update_lines(i);
-			}
-		}
-
-		function update_lines(parent_index) {
-			const record = records[parent_index];
-			const x0 = record.node.x;
-			const y0 = record.node.y;
-			for (let p = 0; p < record.node.edges.length; p++) {
-				const target_index = record.node.edges[p].target_index;
-				const target_record = records[target_index];
-				const x1 = target_record.node.x;
-				const y1 = target_record.node.y;
-				records[parent_index].lines[p].x0 = x0;
-				records[parent_index].lines[p].y0 = y0;
-				records[parent_index].lines[p].x1 = x1;
-				records[parent_index].lines[p].y1 = y1;
-				const target_array = target_record.node.edges.filter((x) => { return x.target_id === record.node.id; });
-				for (let t = 0; t < target_array.length; t++) {
-					records[target_index].lines[t].x0 = x1;
-					records[target_index].lines[t].y0 = y1;
-					records[target_index].lines[t].x1 = x0;
-					records[target_index].lines[t].y1 = y0;
+		
+		const update_lines = () => {
+			for (let i = 0; i < this.cargo.length; i++) {
+				const record = this.cargo[i];
+				const x0 = record.node.x;
+				const y0 = record.node.y;
+				for (let p = 0; p < record.node.edges.length; p++) {
+					const target_index = record.node.edges[p].target_index;
+					const target_record = this.cargo[target_index];
+					const x1 = target_record.node.x;
+					const y1 = target_record.node.y;
+					this.cargo[i].lines[p].x0 = x0;
+					this.cargo[i].lines[p].y0 = y0;
+					this.cargo[i].lines[p].x1 = x1;
+					this.cargo[i].lines[p].y1 = y1;
 				}
 			}
 		}
 
-		draw_figure();
-		return canvas;
+		document.addEventListener('mousedown', mouse_button.bind(this), false);
+		document.addEventListener('mousemove', mouse_move.bind(this), false);
+		document.addEventListener('mouseup', mouse_button.bind(this), false);
+		document.addEventListener('wheel', mouse_zoom.bind(this), false);
+
+		update_lines();
+		draw();
 
 	}
-
 }

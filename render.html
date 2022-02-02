@@ -56,8 +56,8 @@
 
 					//aplication-specific commands
 					case 'signalink': {
-						const network = figure.network_diagram(arg.data);
-						document.body.append(network);
+						const network = new figure.NETWORK(arg.data);
+						document.body.append(network.canvas);
 						break;
 					}
 

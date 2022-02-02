@@ -29,28 +29,35 @@ function SIGNALINK() {
 			// find all outgoing edges
 			let records = this.cargo.filter((x) => { return x.source_uniprotAC === directory[i]; });
 			if (records.length) {
-				node.name = records[0].source_name;
+				node.name = node.name || records[0].source_name;
 				for (let j = 0; j < records.length; j++) {
-					const edge = new EDGE();
-					edge.parent_id = directory[i];
-					edge.target_id = records[j].target_uniprotAC;
-					edge.parent_index = i;
-					edge.target_index = directory.indexOf(records[j].target_uniprotAC);
-					edge.type = 'outgoing';
-					node.edges.push(edge);
+					const target_index = directory.indexOf(records[j].target_uniprotAC); 
+					if (target_index > -1) {
+						const edge = new EDGE();
+						edge.parent_id = directory[i];
+						edge.target_id = records[j].target_uniprotAC;
+						edge.parent_index = i;
+						edge.target_index = target_index;
+						edge.type = 'outgoing';
+						node.edges.push(edge);
+					}
 				}
 			}
 			// find all incoming edges
 			records = this.cargo.filter((x) => { return x.target_uniprotAC === directory[i]; });
 			if (records.length) {
+				node.name = node.name || records[0].target_name;
 				for (let j = 0; j < records.length; j++) {
-					const edge = new EDGE();
-					edge.parent_id = directory[i];
-					edge.target_id = records[j].source_uniprotAC;
-					edge.parent_index = i;
-					edge.target_index = directory.indexOf(records[j].source_uniprotAC);
-					edge.type = 'incoming';
-					node.edges.push(edge);
+					const target_index = directory.indexOf(records[j].source_uniprotAC);
+					if (target_index > -1) {
+						const edge = new EDGE();
+						edge.parent_id = directory[i];
+						edge.target_id = records[j].source_uniprotAC;
+						edge.parent_index = i;
+						edge.target_index = target_index;
+						edge.type = 'incoming';
+						node.edges.push(edge);
+					}
 				}
 			}
 			graph.add(node);

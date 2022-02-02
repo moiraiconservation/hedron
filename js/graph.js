@@ -3,7 +3,6 @@
 
 const { IO } = require('./io.js');
 const { PATHER } = require('./pather.js');
-const { STATS } = require('./stats.js');
 const io = new IO();
 const pather = new PATHER();
 
@@ -28,14 +27,14 @@ function EDGE() {
 
 }
 
-function FDL_OPTIONS() {
+function FD_OPTIONS() {
 	// Standardized force-directed layout function options.
 	//	Note: Not all options might be used by specific
 	//	force-directed algorithms.
-	this.damping = 0.99;
+	this.damping = 0.999;
 	this.pixels_per_unit = 20;
 	this.force_threshold = 1.00;
-	this.ideal_spring_length = 15.00;
+	this.ideal_spring_length = 10.00;
 	this.max_iterations = 10000;
 	this.repulsion_constant = 250.00;
 	this.spring_constant = 2.0;
@@ -196,39 +195,36 @@ function GRAPH() {
 	}
 
 	this.create_subgraph_from_index = (index, levels) => {
-		const added = [];
-		const g = new GRAPH();
-		let list = [];
-		if (typeof (index) === 'undefined') { return g; }
+		let clone_list = [];
+		const index_list = [];
+		const graph = new GRAPH();
+		if (typeof (index) === 'undefined') { return graph; }
 		levels = levels || 0;
-		g.add(this.cargo[index].clone());
-		added.push(index);
-		list.push(this.cargo[index].clone());
+		index_list.push(index);
+		let clone = this.cargo[index].clone();
+		graph.add(clone);
+		clone_list.push(clone);
 		while (levels > 0) {
-			for (let i = 0; i < list.length; i++) {
-				const new_list = [];
-				for (let j = 0; j < list[i].edges.length; j++) {
-					const edge = list[i].edges[j];
-					if (!added.includes(edge.target_index)) {
-						g.add(this.cargo[edge.target_index].clone());
-						added.push(edge.target_index);
-						new_list.push(this.cargo[edge.target_index].clone());
+			const new_list = [];
+			for (let i = 0; i < clone_list.length; i++) {
+				for (let j = 0; j < clone_list[i].edges.length; j++) {
+					const edge = clone_list[i].edges[j];
+					if (!index_list.includes(edge.target_index)) {
+						clone = this.cargo[edge.target_index].clone();
+						index_list.push(edge.target_index);
+						graph.add(clone);
+						new_list.push(clone);
 					}
 				}
-				list = new_list;
 			}
+			clone_list = new_list;
 			levels = levels - 1;
 		}
-		g.update_indices();
-		return g;
+		graph.update_indices();
+		return graph;
 	}
 
-	this.distance_distribution_from_index = (index) => {
-		const node_u = this.cargo[index].clone();
-		return this.distance_distribution_from_node(node_u);
-	}
-
-	this.distance_distribution_from_node = (node_u) => {
+	this.distance_distribution_to_node = (node_u) => {
 		const index = node_u.index;
 		const distribution = [];
 		for (let i = 0; i < this.cargo.length; i++) {
@@ -244,104 +240,7 @@ function GRAPH() {
 		return JSON.stringify(this.cargo);
 	}
 
-	this.force_directed_layout = (options) => {
-		// This is a custom force-directed graph layout algorithm.
-		//	In short: The nodes are sorted in order based on their
-		//	number of connecting edges (largest to smallest). The
-		//	nodes are then taken one-at-a-time, in order, and used
-		//	to generate subgraphs of connected nodes, at least 30
-		//	nodes in size. These subgraphs are organized using the
-		//	Eades 1984 (Ead84) algorithm. Organized subgraphs are
-		//	positioned so they do not substantially overlap, using
-		//	their inter-quartile range of node distances as an
-		//	approximation for the radius of each subgraph. Once
-		//	positioned and organized, each subgraph is locked (so
-		//	the x and y coordinates can no longer be adjested), and
-		//	then merged back into the main graph data structure.
-
-		function BUBBLE() {
-			this.radius = 0;
-			this.x = 0;
-			this.y = 0;
-		}
-
-		function BUBBLES() {
-			this.cargo = [];
-			
-			this.add = (bubble) => {
-				this.cargo.push(bubble);
-			}
-
-			this.check_for_overlap = (bubble) => {
-				for (let i = 0; i < this.cargo.length; i++) {
-					const delta_x = bubble.x - this.cargo[i].x;
-					const delta_y = bubble.y - this.cargo[i].y;
-					const distance = Math.sqrt((delta_x * delta_x) + (delta_y * delta_y));
-					if (distance < (this.cargo[i].radius + bubble.radius)) { return true; }
-				}
-				return false;
-			}
-
-		}
-
-		options = options || new FDL_OPTIONS();
-		let angle = 0;
-		let circumference = 2 * Math.PI;
-		let radius = 0;
-		let x = 100;
-		let y = 100;
-		const bubbles = new BUBBLES();
-		const stats = new STATS();
-		this.sort_by_number_of_edges();
-		for (let i = 0; i < this.cargo.length; i++) {
-			let levels = 1;
-			let size = 0;
-			var subgraph;
-			if (!this.cargo[i].locked) {
-				this.cargo[i].x = x;
-				this.cargo[i].y = y;				
-			}
-			while (size < 30) {
-				subgraph = this.create_subgraph_from_index(i, levels);
-				const new_size = subgraph.cargo.length;
-				if (size === new_size) { break; }
-				size = new_size;
-			}
-			x = subgraph.cargo[0].x;
-			y = subgraph.cargo[0].y;
-			subgraph.cargo[0].locked = true;
-			subgraph.force_directed_layout_Ead84(undefined, options);
-			stats.load(subgraph.distance_distribution_from_index(0));
-			const quartiles = stats.quartiles();
-			let iqr = options.ideal_spring_length;
-			if (quartiles && quartiles.iqr) { iqr = quartiles.iqr; }
-			const bubble = new BUBBLE();
-			bubble.radius = iqr;
-			bubble.x = x;
-			bubble.y = y;
-			bubbles.add(bubble);
-			const next_bubble = new BUBBLE();
-			radius = 2.5 * iqr;
-			next_bubble.radius = iqr;
-			next_bubble.x = x + (radius * Math.cos(angle));
-			next_bubble.y = y + (radius * Math.sin(angle));
-			while (bubbles.check_for_overlap(next_bubble)) {
-				let new_angle = angle + 0.0174533;
-				if (new_angle > circumference) { radius = radius + iqr; }
-				angle = new_angle % circumference;
-				next_bubble.x = x + radius * Math.cos(angle);
-				next_bubble.y = y + radius * Math.sin(angle);
-			}
-			x = next_bubble.x;
-			y = next_bubble.y
-			subgraph.lock_nodes();
-			this.merge_subgraph_by_id(subgraph);
-		}
-		this.unlock_nodes();
-
-	}
-
-	this.force_directed_layout_Ead84 = (graph, options) => {
+	this.force_directed_layout = (graph, options) => {
 		// Eades 1984
 		//	repulsive force:
 		//		f_rep(u, v) = [repulsion constant / (Euclidean distance)^2] * unit vector_vu
@@ -353,7 +252,7 @@ function GRAPH() {
 		//		f_total() = summation(f_att(u, v)) + summation(f_rep(u, v)) * damping
 
 		const layout = graph || this.cargo;
-		options = options || new FDL_OPTIONS();
+		options = options || new FD_OPTIONS();
 		let iteration = 1;
 
 		while (iteration < options.max_iterations) {
@@ -361,7 +260,6 @@ function GRAPH() {
 
 			for (let u = 0; u < layout.length; u++) {
 				layout[u].clear_forces();
-				
 				// calculate the repuslive force for each node
 				for (let v = 0; v < layout.length; v++) {
 					
@@ -412,9 +310,9 @@ function GRAPH() {
 
 			// convert back to screen scale
 			for (let i = 0; i < layout.length; i++) {
-				layout[i].x += layout[i].force.x * options.pixels_per_unit;
-				layout[i].y += layout[i].force.y * options.pixels_per_unit;
-				layout[i].z += layout[i].force.z * options.pixels_per_unit;
+				layout[i].x += Math.round(layout[i].force.x * options.pixels_per_unit);
+				layout[i].y += Math.round(layout[i].force.y * options.pixels_per_unit);
+				layout[i].z += Math.round(layout[i].force.z * options.pixels_per_unit);
 			}
 
 			options.damping = options.damping * options.damping;
