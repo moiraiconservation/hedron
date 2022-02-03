@@ -4,24 +4,50 @@
 ///////////////////////////////////////////////////////////////////////////////
 // PART 1: CANVAS ELEMENTS ////////////////////////////////////////////////////
 
-function CIRCLE(context, x, y, radius, fill, stroke) {
+function CIRCLE_OPTIONS() {
+	this.color = 'white';
+	this.shadow_color = 'black';
+	this.shadow_blur = 20;
+	this.stroke_color = 'black';
 
-	x = x || Math.floor(Math.random() * 100000) - 50000;
-	y = y || Math.floor(Math.random() * 100000) - 50000;
-	radius = radius || 10;
-	fill = fill || '#7ebbed';
-	stroke = stroke || 'rgb(0, 0, 0, 0)';
+	this.clone = () => {
+		const c = new CIRCLE_OPTIONS();
+		c.color = this.color;
+		c.shadow_color = this.shadow_color;
+		c.shadow_blur = this.shadow_blur;
+		c.stroke_color = this.stroke_color;
+		return c;
+	}
 
+	this.set_color = (color) => {
+		if (typeof(color) !== 'string') { return; }
+		this.color = color;
+		this.shadow_color = color;
+	}
+
+	this.set_glow = (glow) => {
+		if (typeof (glow) !== 'number') { return; }
+		this.shadow_blur = glow;
+	}
+
+	this.set_style = (options) => {
+		if (typeof (options) !== 'object') { return; }
+		this.color = options.color;
+		this.shadow_color = options.shadow_color;
+		this.shadow_blur = options.shadow_blur;
+		this.stroke_color = options.stroke_color;
+	}
+
+}
+
+function CIRCLE(context, x, y, radius, options) {
 	this.context = context;
-	this.startingAngle = 0;
-	this.endAngle = 2 * Math.PI;
-	this.x = x;
-	this.y = y;
-	this.radius = radius;
-	this.fill = fill;
-	this.shadowBlur = radius * 2;
-	this.shadowColor = 'white';
-	this.stroke = stroke;
+	this.end_angle = 2 * Math.PI;
+	this.options = options || new CIRCLE_OPTIONS();
+	this.radius = radius || 10;
+	this.start_angle = 0;
+	this.x = x || Math.floor(Math.random() * 100000) - 50000;
+	this.y = y || Math.floor(Math.random() * 100000) - 50000;
 
 	this.is_visible = () => {
 		const width = this.context.canvas.width;
@@ -33,59 +59,43 @@ function CIRCLE(context, x, y, radius, fill, stroke) {
 		return true;
 	}
 	
-	this.draw = (color) => {
-
-		if (color) {
-			this.context.fillStyle = color;
-			this.context.shadowBlur = this.radius * 3;
-			this.context.shadowColor = color;
-			this.context.strokeStyle = color;
-		}
-		else {
-			this.context.fillStyle = this.fill;
-			this.context.shadowBlur = this.shadowBlur;
-			this.context.shadowColor = this.shadowColor;
-			this.context.strokeStyle = this.stroke;
-		}
+	this.draw = (new_options) => {
+		new_options = new_options || this.options;
+		this.context.fillStyle = new_options.color;
+		this.context.shadowBlur = new_options.shadow_blur;
+		this.context.shadowColor = new_options.shadow_color;
+		this.context.strokeStyle = new_options.stroke_color;
 		this.context.lineWidth = 3;
 		this.context.beginPath();
-		this.context.arc(this.x, this.y, this.radius, this.startingAngle, this.endAngle);
+		this.context.arc(this.x, this.y, this.radius, this.start_angle, this.end_angle);
 		this.context.fill();
 		this.context.stroke();
 	}
 
 }
 
-function LINE(context, x0, y0, x1, y1, stroke, thickness) {
-
-	x0 = x0 || Math.floor(Math.random() * 10000) - 5000;
-	y0 = y0 || Math.floor(Math.random() * 10000) - 5000;
-	x1 = x1 || x0 + Math.floor(Math.random() * 100) - 50;
-	y1 = y1 || y0 + Math.floor(Math.random() * 100) - 50;
-	stroke = stroke || 'rgb(49.4, 73.3, 92.9, 0.5)';
-	thickness = thickness || 2;
+function LINE(context, x0, y0, x1, y1, color, shadow_color, shadow_blur, thickness) {
 
 	this.context = context;
-	this.x0 = x0;
-	this.y0 = y0;
-	this.x1 = x1;
-	this.y1 = y1;
-	this.shadowBlur = 0;
-	this.shadowColor = 'transparent';
-	this.stroke = stroke;
-	this.thickness = thickness;
+	this.color = color || 'rgb(49.4, 73.3, 92.9, 0.5)';
+	this.shadow_color = shadow_color || 'transparent';
+	this.shadow_blur = shadow_blur || 0;
+	this.thickness = thickness || 2;
+	this.x0 = x0 || Math.floor(Math.random() * 10000) - 5000;
+	this.y0 = y0 || Math.floor(Math.random() * 10000) - 5000;
+	this.x1 = x1 || x0 + Math.floor(Math.random() * 100) - 50;
+	this.y1 = y1 || y0 + Math.floor(Math.random() * 100) - 50;
 
-	this.draw = (color) => {
-		
-		if (color) {
+	this.draw = (new_color) => {
+		if (new_color) {
+			this.context.shadowColor = new_color;
 			this.context.shadowBlur = 2;
-			this.context.shadowColor = color;
-			this.context.strokeStyle = color;
+			this.context.strokeStyle = new_color;
 		}
 		else {
-			this.context.shadowBlur = this.shadowBlur;
-			this.context.shadowColor = this.shadowColor;
-			this.context.strokeStyle = this.stroke;
+			this.context.shadowColor = this.shadow_color;
+			this.context.shadowBlur = this.shadow_blur;
+			this.context.strokeStyle = this.color;
 		}
 		this.context.lineWidth = this.thickness;
 		this.context.beginPath();
@@ -153,12 +163,6 @@ function NETWORK_RECORD(context, node) {
 	this.lines = [];
 	this.node = node; // this element is expected to be a NODE object from graph.js
 	this.circle = new CIRCLE(this.context, node.x, node.y, node.radius);
-	if (this.node.edges.length) {
-		for (let i = 0; i < this.node.edges.length; i++) {
-			const line = new LINE(this.context, this.node.x, this.node.y);
-			this.lines.push(line);
-		}
-	}
 
 	this.display_name = () => {
 		const name = this.node.name || '?';
@@ -172,6 +176,14 @@ function NETWORK_RECORD(context, node) {
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
 		this.context.fillText(name, this.circle.x, this.circle.y);
+	}
+
+	this.get_circle_style = () => {
+		const co = new CIRCLE_OPTIONS();
+		co.set_color('#7ebbed');
+		co.set_glow(10);
+		co.stroke_color = 'transparent';
+		return co;
 	}
 
 	this.offset_coordinates = (x, y) => {
@@ -200,6 +212,14 @@ function NETWORK_RECORD(context, node) {
 		this.circle.y = y;
 	}
 
+	this.circle.options.set_style(this.get_circle_style());
+	if (this.node.edges.length) {
+		for (let i = 0; i < this.node.edges.length; i++) {
+			const line = new LINE(this.context, this.node.x, this.node.y);
+			this.lines.push(line);
+		}
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -210,16 +230,19 @@ function FIGURE() {
 	this.NETWORK = function (json) {
 		
 		this.cargo = [];
+
+		// canvas
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = document.body.clientWidth;
 		this.canvas.height = window_height;
 		const context = this.canvas.getContext('2d');
 
+		// actions
 		const mouse = new MOUSE(this.canvas);
 		const drag = { index: -1, state: false }
-		const highlight = { index: -1, state: false }
+		const highlight = { index: -1, state: false, targets: [] }
 		const pan = { start_x: 0, start_y: 0, state: false, x: 0, y: 0 }
-		let targets = [];
+		
 		
 		// create the records
 		if (json) {
@@ -230,10 +253,19 @@ function FIGURE() {
 			}
 		}
 		
+		// styles
+		const co_highlight1 = this.cargo[0].get_circle_style();
+		const co_highlight2 = this.cargo[0].get_circle_style();
+		co_highlight1.set_color('#c90e8f');
+		co_highlight2.set_color('#ff89ef');
+		co_highlight1.set_glow(30);
+		co_highlight2.set_glow(30);
+
 		///////////////////////////////////////////////////////////////////////////
 		// PRIVATE METHODS ////////////////////////////////////////////////////////
 
 		const draw = () => {
+			
 			context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 			// draw lines
 			for (let i = 0; i < this.cargo.length; i++) {
@@ -249,8 +281,8 @@ function FIGURE() {
 			}
 			// draw circles
 			for (let i = 0; i < this.cargo.length; i++) {
-				if (targets.includes(i)) { this.cargo[i].circle.draw('#ff89ef'); }
-				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw('#c90e8f'); }
+				if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(co_highlight2); }
+				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw(co_highlight1); }
 				else { this.cargo[i].circle.draw(); }
 				if (this.cargo[i].circle.radius >= 10) { this.cargo[i].display_name(); }
 			}
@@ -274,12 +306,12 @@ function FIGURE() {
 								drag.state = true;
 								highlight.index = i;
 								highlight.state = true;
+								highlight.targets = [];
+								for (let j = 0; j < this.cargo[i].node.edges.length; j++) {
+									highlight.targets.push(this.cargo[i].node.edges[j].target_index);
+								}
 								pan.index = -1;
 								pan.state = false;
-								targets = [];
-								for (let j = 0; j < this.cargo[i].node.edges.length; j++) {
-									targets.push(this.cargo[i].node.edges[j].target_index);
-								}
 								draw();
 								return;
 							}
@@ -306,7 +338,7 @@ function FIGURE() {
 						if (delta_x + delta_y === 0) {
 							highlight.index = -1;
 							highlight.state = false;
-							targets = [];
+							highlight.targets = [];
 						}
 					}
 					draw();
