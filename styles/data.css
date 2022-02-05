@@ -1,0 +1,12 @@
+/*///////////////////////////////////////////////////////////////////////////*/
+/* data.css                                                                  */
+
+.data-card {
+	background-color: #0c162d;
+  border-radius: 15px;
+	margin: 25px;
+	overflow: hidden;
+	padding: 0;
+  position: absolute;
+}
+

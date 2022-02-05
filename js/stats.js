@@ -36,6 +36,22 @@ function STATS() {
   ////////////////////////////////////////////////////////////////////////
   // DESCRIPTIVE STATISTICS //////////////////////////////////////////////
 
+	this.box_plot_outliers = () => {
+		// returns distribution elements that fail the box-plot outlier test
+		const q = this.quartiles();
+		const median = q.q2;
+		const iqr = q.iqr;
+		const upper = median + (1.5 * iqr);
+		const lower = median - (1.5 * iqr);
+		const o = [];
+		for (let i = 0; i < this.cargo.length; i++) {
+			if (this.cargo[i] > upper || this.cargo[i] < lower) {
+				o.push(this.cargo[i]);
+			}
+		}
+		return o;
+	}
+
 	this.central_moment = (moment) => {
 		if (!this.cargo.length) { return undefined; }
 		if (!moment) { moment = 2; }
@@ -167,10 +183,10 @@ function STATS() {
 		const d3 = this.clone();
 		d1.cargo = d1.cargo.slice(0, index1);
 		d3.cargo = d3.cargo.slice(index2, this.cargo.length);
-    quartile.q1 = d1.median();
-    quartile.q2 = this.median();
-    quartile.q3 = d3.median();
-    quartile.iqr = Math.abs(quartile.q3 - quartile.q1);
+    quartile.q1 = d1.median() || 0;
+    quartile.q2 = this.median() || 0;
+    quartile.q3 = d3.median() || 0;
+    quartile.iqr = Math.abs(quartile.q3 - quartile.q1) || 0;
     return quartile;
   };
 

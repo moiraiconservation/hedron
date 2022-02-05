@@ -3,8 +3,10 @@
 
 const { IO } = require('./io.js');
 const { PATHER } = require('./pather.js');
+const { STATS } = require('./stats.js');
 const io = new IO();
 const pather = new PATHER();
+const stats = new STATS();
 
 function EDGE() {
 	this.parent_id = '';
@@ -29,15 +31,13 @@ function EDGE() {
 
 function FD_OPTIONS() {
 	// Standardized force-directed layout function options.
-	//	Note: Not all options might be used by specific
-	//	force-directed algorithms.
-	this.damping = 0.999;
-	this.pixels_per_unit = 20;
+	this.damping = 0.99;
+	this.pixels_per_unit = 50;
 	this.force_threshold = 1.00;
-	this.ideal_spring_length = 10.00;
+	this.ideal_spring_length = 1.00;
 	this.max_iterations = 10000;
-	this.repulsion_constant = 250.00;
-	this.spring_constant = 2.0;
+	this.repulsion_constant = 2.00;
+	this.spring_constant = 1.0;
 }
 
 function NODE() {
@@ -99,7 +99,8 @@ function NODE() {
 		return Math.sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
 	}
 
-	this.is_adjacent = (target_index) => {
+	this.is_adjacent = (node_v) => {
+		const target_index = node_v.index;
 		const index = this.edges.findIndex((x) => { return x.target_index === target_index });
 		if (index >= 0) { return true; }
 		return false;
@@ -172,6 +173,20 @@ function GRAPH() {
 
 	this.add = (node) => { this.cargo.push(node); }
 
+	this.centroid = () => {
+		const mean = { x: 0, y: 0, z: 0 }
+		if (!this.cargo.length) { return mean; }
+		for (let i = 0; i < this.cargo.length; i++) {
+			mean.x += this.cargo[i].x;
+			mean.y += this.cargo[i].y;
+			mean.z += this.cargo[i].z;
+		}
+		mean.x /= this.cargo.length;
+		mean.y /= this.cargo.length;
+		mean.z /= this.cargo.length;
+		return mean;
+	}
+
 	this.clear = () => { this.cargo = []; }
 
 	this.clear_forces = () => {
@@ -224,13 +239,36 @@ function GRAPH() {
 		return graph;
 	}
 
-	this.distance_distribution_to_node = (node_u) => {
+	this.distribution_of_distance_to_node = (node_u) => {
 		const index = node_u.index;
 		const distribution = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			if (i !== index) {
 				const node_v = this.cargo[i].clone();
 				distribution.push(node_u.distance_to_node(node_v));
+			}
+		}
+		return distribution;
+	}
+
+	this.distribution_of_edge_length = () => {
+		const distribution = [];
+		const coordinates = [];
+		for (let u = 0; u < this.cargo.length; u++) {
+			for (let v = 0; v < this.cargo.length; v++) {
+				if (u !== v) {
+					const node_u = this.cargo[u].clone();
+					const node_v = this.cargo[v].clone();
+					if (node_u.is_adjacent(node_v)) {
+						const a = '(' + u.toString() + ',' + v.toString() + ')';
+						const b = '(' + v.toString() + ',' + u.toString() + ')';
+						if (!coordinates.includes(a) && !coordinates.includes(b)) {
+							coordinates.push(a);
+							coordinates.push(b);
+							distribution.push(node_u.distance_to_node(node_v));
+						}
+					}
+				}
 			}
 		}
 		return distribution;
@@ -288,7 +326,7 @@ function GRAPH() {
 						layout[u].repulsion.z += repulsion.z;
 						
 						// calculate the attractive force for adjacent nodes
-						if (node_u.is_adjacent(v)) {
+						if (node_u.is_adjacent(node_v)) {
 							const attraction_factor = options.spring_constant * Math.log(distance / options.ideal_spring_length);
 							attraction.x = (attraction_factor * unit_uv.x) - repulsion.x;
 							attraction.y = (attraction_factor * unit_uv.y) - repulsion.y;
@@ -303,7 +341,7 @@ function GRAPH() {
 				layout[u].force.x = (layout[u].repulsion.x + layout[u].attraction.x) * options.damping;
 				layout[u].force.y = (layout[u].repulsion.y + layout[u].attraction.y) * options.damping;
 				layout[u].force.z = (layout[u].repulsion.z + layout[u].attraction.z) * options.damping;
-				const force_magnitude = Math.round(Math.sqrt((layout[u].force.x * layout[u].force.x) + (layout[u].force.y * layout[u].force.y) + (layout[u].force.z * layout[u].force.z)));
+				const force_magnitude = Math.sqrt((layout[u].force.x * layout[u].force.x) + (layout[u].force.y * layout[u].force.y) + (layout[u].force.z * layout[u].force.z));
 				if (force_magnitude > max_force) { max_force = force_magnitude; }
 
 			} // done searching all u nodes

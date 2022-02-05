@@ -4,18 +4,20 @@
 ///////////////////////////////////////////////////////////////////////////////
 // PART 1: CANVAS ELEMENTS ////////////////////////////////////////////////////
 
-function CIRCLE_OPTIONS() {
+function CIRCLE_STYLE() {
 	this.color = 'white';
+	this.line_color = 'black';
+	this.line_width = 3;
 	this.shadow_color = 'black';
 	this.shadow_blur = 20;
-	this.stroke_color = 'black';
 
 	this.clone = () => {
-		const c = new CIRCLE_OPTIONS();
+		const c = new CIRCLE_STYLE();
 		c.color = this.color;
+		c.line_color = this.line_color;
+		c.line_width = this.line_width;
 		c.shadow_color = this.shadow_color;
 		c.shadow_blur = this.shadow_blur;
-		c.stroke_color = this.stroke_color;
 		return c;
 	}
 
@@ -30,22 +32,27 @@ function CIRCLE_OPTIONS() {
 		this.shadow_blur = glow;
 	}
 
-	this.set_style = (options) => {
-		if (typeof (options) !== 'object') { return; }
-		this.color = options.color;
-		this.shadow_color = options.shadow_color;
-		this.shadow_blur = options.shadow_blur;
-		this.stroke_color = options.stroke_color;
+	this.set_line_width = (line_width) => {
+		this.line_width = line_width;
+	}
+
+	this.set_style = (style) => {
+		if (typeof (style) !== 'object') { return; }
+		this.color = style.color;
+		this.line_color = style.line_color;
+		this.line_width = style.line_width;
+		this.shadow_color = style.shadow_color;
+		this.shadow_blur = style.shadow_blur;
 	}
 
 }
 
-function CIRCLE(context, x, y, radius, options) {
+function CIRCLE(context, x, y, radius, style) {
 	this.context = context;
 	this.end_angle = 2 * Math.PI;
-	this.options = options || new CIRCLE_OPTIONS();
 	this.radius = radius || 10;
 	this.start_angle = 0;
+	this.style = style || new CIRCLE_STYLE();
 	this.x = x || Math.floor(Math.random() * 100000) - 50000;
 	this.y = y || Math.floor(Math.random() * 100000) - 50000;
 
@@ -59,13 +66,13 @@ function CIRCLE(context, x, y, radius, options) {
 		return true;
 	}
 	
-	this.draw = (new_options) => {
-		new_options = new_options || this.options;
-		this.context.fillStyle = new_options.color;
-		this.context.shadowBlur = new_options.shadow_blur;
-		this.context.shadowColor = new_options.shadow_color;
-		this.context.strokeStyle = new_options.stroke_color;
-		this.context.lineWidth = 3;
+	this.draw = (new_style) => {
+		new_style = new_style || this.style;
+		this.context.fillStyle = new_style.color || this.style.color;
+		this.context.lineWidth = new_style.line_width || this.style.line_width;
+		this.context.shadowBlur = new_style.shadow_blur || this.style.shadow_blur;
+		this.context.shadowColor = new_style.shadow_color || this.style.shadow_color;
+		this.context.strokeStyle = new_style.line_color || this.style.line_color;
 		this.context.beginPath();
 		this.context.arc(this.x, this.y, this.radius, this.start_angle, this.end_angle);
 		this.context.fill();
@@ -74,30 +81,58 @@ function CIRCLE(context, x, y, radius, options) {
 
 }
 
-function LINE(context, x0, y0, x1, y1, color, shadow_color, shadow_blur, thickness) {
+function LINE_STYLE() {
+	this.color = 'rgb(49.4, 73.3, 92.9, 0.5)';
+	this.line_width = 2;
+	this.shadow_color = 'transparent';
+	this.shadow_blur = 0;
+
+	this.clone = () => {
+		const c = new LINE_STYLE();
+		c.color = this.color;
+		c.line_width = this.line_width;
+		c.shadow_color = this.shadow_color;
+		c.shadow_blur = this.shadow_blur;
+		return c;
+	}
+
+	this.set_color = (color) => {
+		this.color = color;
+		this.shadow_color = color;
+	}
+
+	this.set_glow = (glow) => {
+		this.shadow_blur = glow;
+	}
+
+	this.set_line_width = (line_width) => {
+		this.line_width = line_width;
+	}
+
+	this.set_style = (style) => {
+		this.color = style.color;
+		this.line_width = style.line_width;
+		this.shadow_color = style.shadow_color;
+		this.shadow_blur = style.shadow_blur;
+	}
+
+}
+
+function LINE(context, x0, y0, x1, y1, style) {
 
 	this.context = context;
-	this.color = color || 'rgb(49.4, 73.3, 92.9, 0.5)';
-	this.shadow_color = shadow_color || 'transparent';
-	this.shadow_blur = shadow_blur || 0;
-	this.thickness = thickness || 2;
+	this.style = style || new LINE_STYLE();
 	this.x0 = x0 || Math.floor(Math.random() * 10000) - 5000;
 	this.y0 = y0 || Math.floor(Math.random() * 10000) - 5000;
 	this.x1 = x1 || x0 + Math.floor(Math.random() * 100) - 50;
 	this.y1 = y1 || y0 + Math.floor(Math.random() * 100) - 50;
 
-	this.draw = (new_color) => {
-		if (new_color) {
-			this.context.shadowColor = new_color;
-			this.context.shadowBlur = 2;
-			this.context.strokeStyle = new_color;
-		}
-		else {
-			this.context.shadowColor = this.shadow_color;
-			this.context.shadowBlur = this.shadow_blur;
-			this.context.strokeStyle = this.color;
-		}
-		this.context.lineWidth = this.thickness;
+	this.draw = (new_style) => {
+		new_style = new_style || this.style;
+		this.context.lineWidth = new_style.line_width || this.style.line_width;
+		this.context.shadowColor = new_style.shadow_color || this.style.shadow_color;
+		this.context.shadowBlur = new_style.shadow_blur || this.style.shadow_blur;
+		this.context.strokeStyle = new_style.color || this.style.line_color;
 		this.context.beginPath();
 		this.context.moveTo(this.x0, this.y0);
 		this.context.lineTo(this.x1, this.y1);
@@ -179,11 +214,26 @@ function NETWORK_RECORD(context, node) {
 	}
 
 	this.get_circle_style = () => {
-		const co = new CIRCLE_OPTIONS();
-		co.set_color('#7ebbed');
-		co.set_glow(10);
-		co.stroke_color = 'transparent';
-		return co;
+		// Returns the defaults circle style for network figures.
+		//	Change these values to change the default way that
+		//	circles are displayed.
+		const cs = new CIRCLE_STYLE();
+		cs.set_color('#7ebbed');
+		cs.set_glow(10);
+		cs.line_color = 'transparent';
+		return cs;
+	}
+
+	this.get_line_style = () => {
+		// Returns the default line style for network figures.
+		//	Change these values to change the dafault way that
+		//	lines are displayed.
+		const ls = new LINE_STYLE();
+		ls.color = 'rgb(49.4, 73.3, 92.9, 0.5)';
+		ls.line_width = 2;
+		ls.shadow_color = 'transparent';
+		ls.shadow_blur = 0;
+		return ls;
 	}
 
 	this.offset_coordinates = (x, y) => {
@@ -212,10 +262,10 @@ function NETWORK_RECORD(context, node) {
 		this.circle.y = y;
 	}
 
-	this.circle.options.set_style(this.get_circle_style());
+	this.circle.style.set_style(this.get_circle_style());
 	if (this.node.edges.length) {
 		for (let i = 0; i < this.node.edges.length; i++) {
-			const line = new LINE(this.context, this.node.x, this.node.y);
+			const line = new LINE(this.context, this.node.x, this.node.y, this.get_line_style());
 			this.lines.push(line);
 		}
 	}
@@ -227,14 +277,19 @@ function NETWORK_RECORD(context, node) {
 
 function FIGURE() {
 
-	this.NETWORK = function (json) {
+	this.NETWORK = function (json, html_element) {
 		
 		this.cargo = [];
 
 		// canvas
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = document.body.clientWidth;
-		this.canvas.height = window_height;
+		this.canvas.height = document.body.clientHeight;
+		if (html_element) {
+			this.canvas.width = html_element.clientWidth;
+			this.canvas.height = html_element.clientHeight;
+			html_element.append(this.canvas);
+		}
 		const context = this.canvas.getContext('2d');
 
 		// actions
@@ -254,15 +309,59 @@ function FIGURE() {
 		}
 		
 		// styles
-		const co_highlight1 = this.cargo[0].get_circle_style();
-		const co_highlight2 = this.cargo[0].get_circle_style();
-		co_highlight1.set_color('#c90e8f');
-		co_highlight2.set_color('#ff89ef');
-		co_highlight1.set_glow(30);
-		co_highlight2.set_glow(30);
+		const cs_highlight1 = this.cargo[0].get_circle_style();
+		const cs_highlight2 = this.cargo[0].get_circle_style();
+		const ls_highlight1 = this.cargo[0].get_line_style();
+		cs_highlight1.set_color('#c90e8f');
+		cs_highlight2.set_color('#ff89ef');
+		ls_highlight1.set_color('#c90e8f');
+		ls_highlight1.set_line_width(); // use default
+		cs_highlight1.set_glow(30);
+		cs_highlight2.set_glow(30);
+
+		///////////////////////////////////////////////////////////////////////////
+		// PUBLIC METHODS /////////////////////////////////////////////////////////
+
+		this.center = (node) => {
+			const offset = centroid();
+			if (node) {
+				offset.x = node.x;
+				offset.y = node.y;
+			}
+			const origin = { x: 0, y: 0 };
+			origin.x = this.canvas.width / 2;
+			origin.y = this.canvas.height / 2;
+			const delta_x = origin.x - offset.x;
+			const delta_y = origin.y - offset.y;
+			for (let i = 0; i < this.cargo.length; i++) {
+				this.cargo[i].node.x += delta_x;
+				this.cargo[i].node.y += delta_y;
+				this.cargo[i].circle.x += delta_x;
+				this.cargo[i].circle.y += delta_y;
+				for (let j = 0; j < this.cargo[i].lines.length; j++) {
+					this.cargo[i].lines[j].x0 += delta_x;
+					this.cargo[i].lines[j].y0 += delta_y;
+					this.cargo[i].lines[j].x1 += delta_x;
+					this.cargo[i].lines[j].y1 += delta_y;
+				}
+			}
+			draw();
+		}
 
 		///////////////////////////////////////////////////////////////////////////
 		// PRIVATE METHODS ////////////////////////////////////////////////////////
+
+		const centroid = () => {
+			const mean = { x: 0, y: 0 }
+			if (!this.cargo.length) { return mean; }
+			for (let i = 0; i < this.cargo.length; i++) {
+				mean.x += this.cargo[i].node.x;
+				mean.y += this.cargo[i].node.y;
+				}
+			mean.x /= this.cargo.length;
+			mean.y /= this.cargo.length;
+			return mean;
+		}
 
 		const draw = () => {
 			
@@ -276,13 +375,13 @@ function FIGURE() {
 			// draw highlighted lines
 			for (let i = 0; i < this.cargo.length; i++) {
 				if (highlight.state && highlight.index === i) {
-					for (let j = 0; j < this.cargo[i].lines.length; j++) { this.cargo[i].lines[j].draw('#c90e8f'); }
+					for (let j = 0; j < this.cargo[i].lines.length; j++) { this.cargo[i].lines[j].draw(ls_highlight1); }
 				}
 			}
 			// draw circles
 			for (let i = 0; i < this.cargo.length; i++) {
-				if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(co_highlight2); }
-				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw(co_highlight1); }
+				if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(cs_highlight2); }
+				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw(cs_highlight1); }
 				else { this.cargo[i].circle.draw(); }
 				if (this.cargo[i].circle.radius >= 10) { this.cargo[i].display_name(); }
 			}
@@ -393,6 +492,9 @@ function FIGURE() {
 				let delta_y = (this.cargo[i].circle.y - mouse.y) * scale;
 				this.cargo[i].set_coordinates(mouse.x + delta_x, mouse.y + delta_y);
 				this.cargo[i].circle.radius = this.cargo[i].circle.radius * scale;
+				for (let j = 0; j < this.cargo[i].lines.length; j++) {
+					this.cargo[i].lines[j].style.line_width *= scale;
+				}
 			}
 			update_lines();
 			draw();
@@ -422,7 +524,7 @@ function FIGURE() {
 		document.addEventListener('wheel', mouse_zoom.bind(this), false);
 
 		update_lines();
-		draw();
+		this.center();
 
 	}
 }

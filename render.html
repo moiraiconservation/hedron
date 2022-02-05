@@ -12,25 +12,33 @@
 	<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 	<link href="node_modules/@fortawesome/fontawesome-free/css/all.css" rel="stylesheet" type="text/css">
 	<link href="styles/bootstrap_3_3_7.css" rel="stylesheet" type="text/css">
-	<link href="theme.css" rel="stylesheet" type="text/css">
+	<link href="styles/data.css" rel="stylesheet" type="text/css">
+	<link href="styles/theme.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-	<div class="container-fluid">
-		<div class="container">
-			<div style="height: 25px"></div>
-			<div style="height: 25px"></div>
-			<div class="center">
-				<div class="document document_medium">
-					<div id="output-title"></div>
-				</div>
-			</div>
-		</div> <!-- end container -->
-	</div> <!-- end container-fluid -->
+		<div class="data-card" id="data-viewport"></div>
+	</div>
 	<script>
 
-		let window_width = 0;
-		let window_height = 0;
 		let figure = new FIGURE();
+		let screen = { x: 0, y: 0 };
+
+		///////////////////////////////////////////////////////////////////////////
+		// FUNCTIONS //////////////////////////////////////////////////////////////
+
+		function get_element_size(html_element) {
+			const s = { x: 0, y: 0 };
+			s.x = html_element.offsetWidth;
+			s.y = html_element.offsetHeight;
+			return s;
+		}
+
+		function get_screen_size() {
+			const s = { x: 0, y: 0 };
+			s.x = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+			s.y = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+			return s;
+		}
 
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
@@ -43,21 +51,18 @@
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
 					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
-					case 'initialize': {
-						window_height = arg.height;
-						window_width = arg.width;
-						break;
-					}
-					case 'window_resize': {
-						window_height = arg.height;
-						window_width = arg.width;
-						break;
-					}
+					case 'initialize': { screen = get_screen_size(); break; }
+					case 'window_resize': { screen = get_screen_size(); break; }
 
 					//aplication-specific commands
 					case 'signalink': {
-						const network = new figure.NETWORK(arg.data);
-						document.body.append(network.canvas);
+						const data_viewport = document.getElementById('data-viewport');
+						const size = { x: 0, y: 0 };
+						size.x = (screen.x - 50).toString() + 'px';
+						size.y = Math.floor((screen.y * 0.66) - 50).toString() + 'px';
+						data_viewport.style.width = size.x;
+						data_viewport.style.height = size.y;
+						const network = new figure.NETWORK(arg.data, data_viewport);
 						break;
 					}
 

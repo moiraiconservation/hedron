@@ -97,7 +97,7 @@ function show_window(filename) {
 				app_storage.window_bounds.height = height;
 				app_storage.window_bounds.width = width;
 				win.main.webContents.send('window-resized', win.main.getBounds());
-				win.main.webContents.send('toRender', { command: 'window_resized', width: app_storage.window_bounds.width, height: app_storage.window_bounds.height });
+				win.main.webContents.send('toRender', { command: 'window_resized' });
 			}
 		});
 		win.main.on('unmaximize', () => {
@@ -107,7 +107,7 @@ function show_window(filename) {
 	}
 	win.main.once('ready-to-show', () => {
 		win.main.show();
-		win.main.webContents.send('toRender', { command: 'initialize', width: app_storage.window_bounds.width, height: app_storage.window_bounds.height });
+		win.main.webContents.send('toRender', { command: 'initialize' });
 	});
 }
 
