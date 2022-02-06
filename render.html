@@ -11,15 +11,15 @@
 	<link href="https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 	<link href="node_modules/@fortawesome/fontawesome-free/css/all.css" rel="stylesheet" type="text/css">
-	<link href="styles/bootstrap_3_3_7.css" rel="stylesheet" type="text/css">
+	<!-- <link href="styles/bootstrap_3_3_7.css" rel="stylesheet" type="text/css"> -->
 	<link href="styles/data.css" rel="stylesheet" type="text/css">
-	<link href="styles/theme.css" rel="stylesheet" type="text/css">
+	<!-- <link href="styles/theme.css" rel="stylesheet" type="text/css"> -->
 </head>
 <body>
 	<div class="data-card-row">
 		<div class="data-card" id="data-viewport" data-height="1.0" data-margin="25 25 25 25" data-width="0.66"></div>
 		<div class="data-card" id="data-controls" data-height="1.0" data-margin="25 25 25 0"  data-width="0.34">
-			<input class="input-lg" style="margin: 25px 25px 25px 25px; width: 90%">
+			<input class="data-card-html-element input-lg" data-margin="25 25 25 25"  data-width="1.0">
 		</div>
 	</div>
 	
@@ -31,7 +31,7 @@
 		///////////////////////////////////////////////////////////////////////////
 		// FUNCTIONS //////////////////////////////////////////////////////////////
 
-		function get_data_card_margin(html_element) {
+		function get_element_margins(html_element) {
 			let text = html_element.getAttribute('data-margin');
 			text = text.replace(/px/g, '');
 			const parts = text.split(' ');
@@ -47,9 +47,10 @@
 		}
 
 		function get_element_size(html_element) {
+			if (!html_element) { return get_screen_size(); }
 			const s = { x: 0, y: 0 };
-			s.x = html_element.offsetWidth;
-			s.y = html_element.offsetHeight;
+			s.x = html_element.offsetWidth || 0;
+			s.y = html_element.offsetHeight || 0;
 			return s;
 		}
 
@@ -60,25 +61,33 @@
 			return s;
 		}
 
-		function update_data_cards() {
-			const cards = document.getElementsByClassName('data-card');
-			for (let i = 0; i < cards.length; i++) {
+		function update_data_elements(parent_element, class_name) {
+			const	parent_size = get_element_size(parent_element);
+			parent_element = parent_element || document;
+			class_name = class_name || 'data-card';
+			const elements = parent_element.getElementsByClassName(class_name);
+			for (let i = 0; i < elements.length; i++) {
 				const offset = { x: 0, y: 0 };
 				const scale = { x: 0, y: 0 };
 				const size = { x: 0, y: 0 };
-				const margin = get_data_card_margin(cards[i]);
+				const margin = get_element_margins(elements[i]);
+				elements[i].style.marginTop = margin.top.toString() + 'px';
+				elements[i].style.marginRight = margin.right.toString() + 'px';
+				elements[i].style.marginBottom = margin.bottom.toString() + 'px';
+				elements[i].style.marginLeft = margin.left.toString() + 'px';
 				offset.x = margin.left + margin.right;
 				offset.y = margin.top + margin.bottom;
-				scale.x = cards[i].getAttribute('data-width');
-				scale.y = cards[i].getAttribute('data-height');
-				size.x = ((screen.x * scale.x) - offset.x).toString() + 'px';
-				size.y = Math.floor((screen.y * scale.y) - offset.y).toString() + 'px';
-				cards[i].style.marginTop = margin.top.toString() + 'px';
-				cards[i].style.marginRight = margin.right.toString() + 'px';
-				cards[i].style.marginBottom = margin.bottom.toString() + 'px';
-				cards[i].style.marginLeft = margin.left.toString() + 'px';
-				cards[i].style.width = size.x;
-				cards[i].style.height = size.y;
+				scale.x = elements[i].getAttribute('data-width') || 0;
+				scale.y = elements[i].getAttribute('data-height') || 0;
+				if (scale.x) {
+					size.x = ((parent_size.x * scale.x) - offset.x).toString() + 'px';
+					elements[i].style.width = size.x;
+				}
+				if (scale.y) {
+					size.y = Math.floor((parent_size.y * scale.y) - offset.y).toString() + 'px';
+					elements[i].style.height = size.y;
+				}
+				update_data_elements(elements[i], 'data-card-html-element');
 			}
 		}
 
@@ -93,8 +102,8 @@
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
 					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
-					case 'initialize': { screen = get_screen_size(); update_data_cards(); break; }
-					case 'window_resize': { screen = get_screen_size(); update_data_cards(); break; }
+					case 'initialize': { screen = get_screen_size(); update_data_elements(); break; }
+					case 'window_resize': { screen = get_screen_size(); update_data_elements(); break; }
 
 					//aplication-specific commands
 					case 'signalink': {
