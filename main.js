@@ -12,12 +12,13 @@ const ipc = require('electron').ipcMain;
 const path = require('path');
 
 const { DATA } = require('./js/data.js');
+const { DRUGBANK } = require('./database/drugbank.js');
 const { GRAPH } = require('./js/graph.js');
 const { SEQUENCES } = require('./js/sequences.js');
 const { SIGNALINK } = require('./database/signalink.js');
 const { STATS } = require('./js/stats.js');
 const data = new DATA();
-const sequences = new SEQUENCES();
+const drugbank = new DRUGBANK();
 const signalink = new SIGNALINK();
 const stats = new STATS();
 
@@ -241,14 +242,27 @@ ipc.on('toMain', async (event, arg) => {
 		
 		switch (arg.command) {
 
+			case 'open_drugbank_target_polypeptides': {
+				await drugbank.load_xlsx_target_polypeptides_file(arg.data.filePaths[0]);
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
+				break;
+			}
+
+			case 'open_drugbank_vocabulary': {
+				await drugbank.load_xlsx_vocabulary_file(arg.data.filePaths[0]);
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
+				const names = drugbank.get_unique_drug_names();
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(names) });
+				break;
+			}
+
 			case 'open_signalink': {
 				await signalink.load_xlsx_file(arg.data.filePaths[0]);
-				const graph = signalink.export_as_graph();
-				graph.force_directed_layout();
-				//graph.save_as_json(signalink.path);
-				const json = graph.export_as_json();
-				win.main.webContents.send('toRender', { command: 'console.log json', data: json });
-				win.main.webContents.send('toRender', { command: 'signalink', data: json });
+				//const graph = signalink.export_as_graph();
+				//graph.force_directed_layout();
+				//const json = graph.export_as_json();
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(signalink) });
+				//win.main.webContents.send('toRender', { command: 'signalink', data: json });
 				break;
 			}
 	

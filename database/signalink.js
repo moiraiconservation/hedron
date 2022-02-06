@@ -12,6 +12,13 @@ function SIGNALINK() {
 
 	this.clear = () => { this.cargo = []; }
 
+	this.clone = () => {
+		const c = new SIGNALINK();
+		c.cargo = JSON.parse(JSON.stringify(this.cargo));
+		c.path = this.path;
+		return c;
+	}
+
 	this.export_as_graph = () => {
 		// create an array of unique identifiers
 		let directory = [];
@@ -64,6 +71,10 @@ function SIGNALINK() {
 		}
 		graph.make_2d();
 		return graph;
+	}
+
+	this.export_as_json = () => {
+		return JSON.stringify(this.cargo);
 	}
 
 	this.load_xlsx_file = async (path) => {

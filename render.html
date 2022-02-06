@@ -16,8 +16,13 @@
 	<link href="styles/theme.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-		<div class="data-card" id="data-viewport"></div>
+	<div class="data-card-row">
+		<div class="data-card" id="data-viewport" data-height="1.0" data-margin="25 25 25 25" data-width="0.66"></div>
+		<div class="data-card" id="data-controls" data-height="1.0" data-margin="25 25 25 0"  data-width="0.34">
+			<input class="input-lg" style="margin: 25px 25px 25px 25px; width: 90%">
+		</div>
 	</div>
+	
 	<script>
 
 		let figure = new FIGURE();
@@ -25,6 +30,21 @@
 
 		///////////////////////////////////////////////////////////////////////////
 		// FUNCTIONS //////////////////////////////////////////////////////////////
+
+		function get_data_card_margin(html_element) {
+			let text = html_element.getAttribute('data-margin');
+			text = text.replace(/px/g, '');
+			const parts = text.split(' ');
+			for (let i = 0; i < parts.length; i++) {
+				parts[i] = parseInt(parts[i]);
+			}
+			const margin = { top: 0, right: 0, bottom: 0, left: 0 };
+			if (parts[0]) { margin.top = parts[0]; }
+			if (parts[1]) { margin.right = parts[1]; }
+			if (parts[2]) { margin.bottom = parts[2]; }
+			if (parts[3]) { margin.left = parts[3]; }
+			return margin;
+		}
 
 		function get_element_size(html_element) {
 			const s = { x: 0, y: 0 };
@@ -40,6 +60,28 @@
 			return s;
 		}
 
+		function update_data_cards() {
+			const cards = document.getElementsByClassName('data-card');
+			for (let i = 0; i < cards.length; i++) {
+				const offset = { x: 0, y: 0 };
+				const scale = { x: 0, y: 0 };
+				const size = { x: 0, y: 0 };
+				const margin = get_data_card_margin(cards[i]);
+				offset.x = margin.left + margin.right;
+				offset.y = margin.top + margin.bottom;
+				scale.x = cards[i].getAttribute('data-width');
+				scale.y = cards[i].getAttribute('data-height');
+				size.x = ((screen.x * scale.x) - offset.x).toString() + 'px';
+				size.y = Math.floor((screen.y * scale.y) - offset.y).toString() + 'px';
+				cards[i].style.marginTop = margin.top.toString() + 'px';
+				cards[i].style.marginRight = margin.right.toString() + 'px';
+				cards[i].style.marginBottom = margin.bottom.toString() + 'px';
+				cards[i].style.marginLeft = margin.left.toString() + 'px';
+				cards[i].style.width = size.x;
+				cards[i].style.height = size.y;
+			}
+		}
+
 		///////////////////////////////////////////////////////////////////////////
 		// IPC COMMUNICATION //////////////////////////////////////////////////////
 
@@ -51,17 +93,12 @@
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
 					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
-					case 'initialize': { screen = get_screen_size(); break; }
-					case 'window_resize': { screen = get_screen_size(); break; }
+					case 'initialize': { screen = get_screen_size(); update_data_cards(); break; }
+					case 'window_resize': { screen = get_screen_size(); update_data_cards(); break; }
 
 					//aplication-specific commands
 					case 'signalink': {
 						const data_viewport = document.getElementById('data-viewport');
-						const size = { x: 0, y: 0 };
-						size.x = (screen.x - 50).toString() + 'px';
-						size.y = Math.floor((screen.y * 0.66) - 50).toString() + 'px';
-						data_viewport.style.width = size.x;
-						data_viewport.style.height = size.y;
 						const network = new figure.NETWORK(arg.data, data_viewport);
 						break;
 					}

@@ -72,6 +72,19 @@ function DATA() {
 			const temp = xlsx.utils.sheet_to_json(file.Sheets[file.SheetNames[i]]);
 			temp.forEach((res) => { this.cargo.push(res) });
 		}
+		// format the object keys
+		for (let i = 0; i < this.cargo.length; i++) {
+			const old_keys = Object.keys(this.cargo[i]);
+			for (let j = 0; j < old_keys.length; j++) {
+				const old_key = old_keys[j];
+				const new_key = old_key.replace(/ /g, '_').toLocaleLowerCase();
+				if (old_key !== new_key) {
+					Object.defineProperty(this.cargo[i], new_key,
+						Object.getOwnPropertyDescriptor(this.cargo[i], old_key));
+					delete this.cargo[i][old_key];
+				}
+			}
+		}
 		return true;
 	}
 
