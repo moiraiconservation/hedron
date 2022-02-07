@@ -252,17 +252,18 @@ ipc.on('toMain', async (event, arg) => {
 				await drugbank.load_xlsx_vocabulary_file(arg.data.filePaths[0]);
 				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
 				const names = drugbank.get_unique_drug_names();
-				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(names) });
+				win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(names) });
 				break;
 			}
 
 			case 'open_signalink': {
 				await signalink.load_xlsx_file(arg.data.filePaths[0]);
-				//const graph = signalink.export_as_graph();
-				//graph.force_directed_layout();
-				//const json = graph.export_as_json();
+				const graph = signalink.export_as_graph();
+				graph.force_directed_layout();
+
+				const json = graph.export_as_json();
 				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(signalink) });
-				//win.main.webContents.send('toRender', { command: 'signalink', data: json });
+				win.main.webContents.send('toRender', { command: 'signalink', data: json });
 				break;
 			}
 	

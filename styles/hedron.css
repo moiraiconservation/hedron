@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////*/
-/* data.css                                                                  */
+/* hedron.css                                                                */
 
 :root {
   --color-background-dark:        #111111;
@@ -92,7 +92,7 @@ button:focus {
 
 .input-lg {
 	background-color: var(--color-input);
-	border-bottom: 3px solid white;
+	border-bottom: 3px solid transparent;
 	border-left: none;
 	border-right: none;
 	border-top: none;
@@ -105,9 +105,5 @@ button:focus {
 }
 
 .input-lg:focus {
-	/*border-bottom: 3px solid white;*/
-	/*border-width: 3px;*/
-	border-image: linear-gradient(45deg, red, blue) 1;
-  /*border-image: linear-gradient(to right, --color-primary-foundation, --color-secondary-foundation);
-  border-image-slice: 1;*/
+	border-image: linear-gradient(45deg, darkgreen, lightgreen) 1;
 }

@@ -5,21 +5,20 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Hedron</title>
 	<meta content="script-src 'self' 'unsafe-inline';" http-equiv="Content-Security-Policy" />
+	<script src="autocomplete.js" type="text/javascript"></script>
 	<script src="figure.js" type="text/javascript"></script>
 	<link href="https://fonts.gstatic.com" rel="preconnect">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Nova+Mono&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 	<link href="node_modules/@fortawesome/fontawesome-free/css/all.css" rel="stylesheet" type="text/css">
-	<!-- <link href="styles/bootstrap_3_3_7.css" rel="stylesheet" type="text/css"> -->
-	<link href="styles/data.css" rel="stylesheet" type="text/css">
-	<!-- <link href="styles/theme.css" rel="stylesheet" type="text/css"> -->
+	<link href="styles/hedron.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 	<div class="data-card-row">
-		<div class="data-card" id="data-viewport" data-height="1.0" data-margin="25 25 25 25" data-width="0.66"></div>
-		<div class="data-card" id="data-controls" data-height="1.0" data-margin="25 25 25 0"  data-width="0.34">
-			<input class="data-card-html-element input-lg" data-margin="25 25 25 25"  data-width="1.0">
+		<div class="data-card" id="data-viewport" data-height="0.95" data-margin="25 25 25 25" data-width="0.66"></div>
+		<div class="data-card" id="data-controls" data-height="0.95" data-margin="25 25 25 0"  data-width="0.34">
+			<input class="data-card-html-element input-lg" id="drug_name_input" data-margin="25 25 25 25"  data-width="1.0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 		</div>
 	</div>
 	
@@ -106,7 +105,16 @@
 					case 'window_resize': { screen = get_screen_size(); update_data_elements(); break; }
 
 					//aplication-specific commands
+					case 'drug_name_autocomplete': {
+						const drug_names = JSON.parse(arg.data);
+						const drug_name_input = document.getElementById('drug_name_input');
+						autocomplete(drug_name_input, drug_names);
+						break;
+					}
+
 					case 'signalink': {
+						const network_data = JSON.parse(arg.data);
+						console.log(network_data);
 						const data_viewport = document.getElementById('data-viewport');
 						const network = new figure.NETWORK(arg.data, data_viewport);
 						break;
