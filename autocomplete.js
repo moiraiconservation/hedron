@@ -14,6 +14,7 @@ function autocomplete(inp, arr) {
 		a.id = 'autocomplete-list-' + this.id;
 		a.classList.add('autocomplete-items');
 		a.style.width = inp.offsetWidth + 'px';
+		a.style.marginLeft = inp.style.marginLeft;
 		this.parentNode.appendChild(a);
 
 		for (i = 0; i < arr.length; i++) {

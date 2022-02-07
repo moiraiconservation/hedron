@@ -96,6 +96,7 @@ button:focus {
 	border-left: none;
 	border-right: none;
 	border-top: none;
+	box-sizing: border-box;
   color: var(--color-text-light);
 	font-size: 18px;
   height: 46px;
@@ -107,3 +108,31 @@ button:focus {
 .input-lg:focus {
 	border-image: linear-gradient(45deg, darkgreen, lightgreen) 1;
 }
+
+.autocomplete { position: relative; }
+.autocomplete-items {
+  background-color: var(--color-input);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  border-radius: 0px 0px 6px 6px;
+  border-right: 2px solid transparent;
+  border-top: 2px solid transparent;
+	box-sizing: border-box;
+  color: var(--color-text-light);
+}
+
+.form-control ~ .autocomplete-items { top: 46px; }
+.autocomplete-items div {
+  cursor: pointer;
+  padding: 10px;
+}
+
+.autocomplete-items div:hover {
+  color: var(--color-text-light);
+  background-color: green;
+}
+.autocomplete-active {
+  background-color: darkgreen;
+  color: var(--color-text-light);
+}
+
