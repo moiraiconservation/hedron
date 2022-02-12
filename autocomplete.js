@@ -1,57 +1,57 @@
 ///////////////////////////////////////////////////////////////////////////////
 // autocomplete.js
 
-function autocomplete(inp, arr) {
+function autocomplete(input, arr, append_to_html_element) {
 
 	let currentFocus = -1;
+	append_to_html_element = append_to_html_element || input;
 
-	inp.addEventListener('input', function (e) {
-		var a, b, i, val = this.value;
-
+	input.addEventListener('input', function (e) {
+	
+		let text = e.target.value;
 		closeAllLists();
-		if (!val) { return false; }
-		a = document.createElement('div');
-		a.id = 'autocomplete-list-' + this.id;
-		a.classList.add('autocomplete-items');
-		a.style.width = inp.offsetWidth + 'px';
-		a.style.marginLeft = inp.style.marginLeft;
-		this.parentNode.appendChild(a);
+		if (!text) { return false; }
+		const list = document.createElement('div');
+		list.id = 'autocomplete-list-' + e.id;
+		list.classList.add('autocomplete-items');
+		list.style.width = append_to_html_element.offsetWidth + 'px';
+		list.style.marginLeft = append_to_html_element.style.marginLeft;
+		append_to_html_element.parentNode.appendChild(list);
+		
+		for (let i = 0; i < arr.length; i++) {
+			if (arr[i] && typeof (arr[i]) === 'string' && arr[i].substr(0, text.length).toUpperCase() == text.toUpperCase()) {
+				const list_element = document.createElement('div');
+				list_element.innerHTML = '<strong>' + arr[i].substr(0, text.length) + '</strong>';
+				list_element.innerHTML += arr[i].substr(text.length);
+				list_element.innerHTML += '<input type="hidden" value="' + arr[i] + '">';
 
-		for (i = 0; i < arr.length; i++) {
-
-			if (arr[i] && typeof (arr[i]) === 'string' && arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
-
-				b = document.createElement('div');
-				b.innerHTML = '<strong>' + arr[i].substr(0, val.length) + '</strong>';
-				b.innerHTML += arr[i].substr(val.length);
-				b.innerHTML += '<input type="hidden" value="' + arr[i] + '">';
-
-				b.addEventListener('click', function () {
-					inp.value = this.getElementsByTagName('input')[0].value;
-					inp.focus();
+				list_element.addEventListener('click', function (e) {
+					input.value = e.target.getElementsByTagName('input')[0].value;
+					input.focus();
 					closeAllLists();
 				});
 
-				a.appendChild(b);
-
+				list.appendChild(list_element);
 			}
 		}
 
-		if (a.innerHTML == '') { a.style.display = 'none'; }
-		else { a.style.display = 'block'; }
+		if (list.innerHTML == '') { list.style.display = 'none'; }
+		else { list.style.display = 'block'; }
 
 	});
 
-	inp.addEventListener('keydown', function (e) {
-		var x = document.getElementById('autocomplete-list-' + this.id);
+	input.addEventListener('keydown', function (e) {
+		var x = document.getElementById('autocomplete-list-' + e.id);
 		if (x) { x = x.getElementsByTagName('div'); }
 		if (e.key === 'ArrowDown') {
 			currentFocus++;
 			addActive(x);
 		}
 		else if (e.key === 'ArrowUp') {
-			currentFocus--;
-			addActive(x);
+			if (currentFocus > -1) {
+				currentFocus--;
+				addActive(x);
+			}
 		}
 		else if ((e.key === 'Enter') || (e.key === 'Tab')) {
 			if (currentFocus > -1) {
@@ -62,7 +62,7 @@ function autocomplete(inp, arr) {
 					if (e.target.parentNode.childNodes[1]) {
 						if (e.target.parentNode.childNodes[1].childNodes) {
 							if (e.target.parentNode.childNodes[1].childNodes[0]) {
-								inp.value = e.target.parentNode.childNodes[1].childNodes[0].textContent;
+								input.value = e.target.parentNode.childNodes[1].childNodes[0].textContent;
 								closeAllLists();
 							}
 						}
@@ -75,15 +75,15 @@ function autocomplete(inp, arr) {
 	function addActive(x) {
 		if (!x) { return false; }
 		removeActive(x);
-		if (currentFocus >= x.length) currentFocus = 0;
-		if (currentFocus < 0) currentFocus = (x.length - 1);
+		if (currentFocus >= x.length) { currentFocus = 0; }
+		if (currentFocus < 0) { currentFocus = (x.length - 1); }
 		x[currentFocus].classList.add('autocomplete-active');
 	}
 	
-	function closeAllLists(elmnt) {
+	function closeAllLists(list_element) {
 		var x = document.getElementsByClassName('autocomplete-items');
 		for (var i = 0; i < x.length; i++) {
-			if (elmnt != x[i] && elmnt != inp) {
+			if (list_element != x[i] && list_element != input) {
 				x[i].parentNode.removeChild(x[i]);
 			}
 		}

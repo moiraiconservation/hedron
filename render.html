@@ -18,7 +18,10 @@
 	<div class="data-card-row">
 		<div class="data-card" id="data-viewport" data-height="0.95" data-margin="25 25 25 25" data-width="0.66"></div>
 		<div class="data-card" id="data-controls" data-height="0.95" data-margin="25 25 25 0"  data-width="0.34">
-			<input class="data-card-html-element input-lg" id="drug_name_input" data-margin="25 25 0 25"  data-width="1.0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+			<div class="data-card-html-element input-lg-container" id="drug_name_container" data-margin="25 25 0 25"  data-width="1.0">
+				<input class="data-card-html-element input-lg" id="drug_name_input" data-width="0.85" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Drug Name" spellcheck="false" />
+				<button class="data-card-html-element input-lg-button" id="drug_name_button" data-width="0.15"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+			</div>
 		</div>
 	</div>
 	
@@ -27,17 +30,28 @@
 		let figure = new FIGURE();
 		let screen = { x: 0, y: 0 };
 
+		document.getElementById('drug_name_input').addEventListener('keyup', (e) => {
+			if (e.key === 'Enter') {
+				console.log(e.target.value);
+			}
+		});
+
+		document.getElementById('drug_name_button').addEventListener('click', (e) => {
+			console.log(document.getElementById('drug_name_input').value);
+		});
+
 		///////////////////////////////////////////////////////////////////////////
 		// FUNCTIONS //////////////////////////////////////////////////////////////
 
 		function get_element_margins(html_element) {
+			const margin = { top: 0, right: 0, bottom: 0, left: 0 };
 			let text = html_element.getAttribute('data-margin');
+			if (!text) { return margin; }
 			text = text.replace(/px/g, '');
 			const parts = text.split(' ');
 			for (let i = 0; i < parts.length; i++) {
 				parts[i] = parseInt(parts[i]);
 			}
-			const margin = { top: 0, right: 0, bottom: 0, left: 0 };
 			if (parts[0]) { margin.top = parts[0]; }
 			if (parts[1]) { margin.right = parts[1]; }
 			if (parts[2]) { margin.bottom = parts[2]; }
@@ -107,8 +121,9 @@
 					//aplication-specific commands
 					case 'drug_name_autocomplete': {
 						const drug_names = JSON.parse(arg.data);
+						const drug_name_container = document.getElementById('drug_name_container');
 						const drug_name_input = document.getElementById('drug_name_input');
-						autocomplete(drug_name_input, drug_names);
+						autocomplete(drug_name_input, drug_names, drug_name_container);
 						break;
 					}
 
