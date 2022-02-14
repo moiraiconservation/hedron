@@ -283,11 +283,9 @@ function GRAPH() {
 		const layout = graph || this.cargo;
 		options = options || new FD_OPTIONS();
 		let iteration = 1;
-		console.log('About to work with this many nodes: ' + this.cargo.length);
 
 		while (iteration < options.max_iterations) {
 			let max_force = -Infinity;
-			console.log('iteration ' + iteration + ' out of ' + options.max_iterations);
 
 			for (let u = 0; u < layout.length; u++) {
 				layout[u].clear_forces();
@@ -547,7 +545,7 @@ function GRAPH() {
 				if (hierarchy[level][i] !== node_v.id) { hierarchy[level].splice(i, 1); }
 			}
 			previous_level = hierarchy[level];
-			for (let i = level - 1; i >= 0; i--) {
+			for (let i = level - 1; i > 0; i--) {
 				for (let j = hierarchy[i].length - 1; j >= 0; j--) {
 					const filtered = this.filter_by('id', hierarchy[i][j]);
 					if (filtered.cargo.length) {
@@ -555,15 +553,14 @@ function GRAPH() {
 						for (let k = 0; k < filtered.cargo[0].edges.length; k++) {
 							targets.push(filtered.cargo[0].edges[k].target_id);
 						}
-						const linked = targets.some((r) => { return previous_level.includes(r); });
+						const linked = previous_level.some((x) => { return targets.includes(x); });
 						if (!linked) { hierarchy[i].splice(j, 1); }
 					}
 					else { hierarchy[i].splice(j, 1); }
-					previous_level = hierarchy[i];
 				}
+				previous_level = hierarchy[i];
 			}
 		}
-		// paths found
 		const arr = [];
 		for (i = 0; i < hierarchy.length; i++) {
 			for (let j = 0; j < hierarchy[i].length; j++) {
@@ -574,7 +571,6 @@ function GRAPH() {
 		subgraph = this.filter_by_id(id_list);
 		subgraph.update_indices();
 		return subgraph;
-		//return hierarchy;
 	}
 
 	this.sort_by_number_of_edges = () => {
@@ -633,7 +629,6 @@ function GRAPH() {
 		for (let i = 0; i < nodes.length; i++) {
 			for (let j = i + 1; j < nodes.length; j++) {
 				if (i !== j) {
-					console.log('{ i: ' + i + ', j: ' + j + ' }');
 					const mini_graph = this.subgraph_between_nodes(nodes[i], nodes[j]);
 					arr = arr.concat(mini_graph.get_unique('id'));
 				}

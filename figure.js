@@ -288,6 +288,7 @@ function FIGURE() {
 		if (html_element) {
 			this.canvas.width = html_element.clientWidth;
 			this.canvas.height = html_element.clientHeight;
+			html_element.innerHTML = '';
 			html_element.append(this.canvas);
 		}
 		const context = this.canvas.getContext('2d');

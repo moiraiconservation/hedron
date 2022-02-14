@@ -44,7 +44,7 @@
 
 body {
 	background-color: var(--color-deep-blue);
-  color: var(--color-text-light);
+  color: var(--color-text-dark);
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   /*font-family: "Roboto", sans-serif;*/
   text-rendering: optimizelegibility;
@@ -96,7 +96,7 @@ p, h2, h3, h4, h5, h6,
 .document, .document_large, .document_medium, .document_small, .document_title,
 .document textarea, .document_large textarea, .document_medium textarea, .document_small textarea,
 .document textarea-lg, .document_large textarea-lg, .document_medium textarea-lg, .document_small textarea-lg,
-label, .modal_text, textarea {
+label, textarea {
   -moz-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
@@ -105,18 +105,32 @@ label, .modal_text, textarea {
   word-wrap: break-word;
   text-rendering: optimizelegibility;
 }
-.document_large, .document_medium, .document_small,
+.document, .document_large, .document_medium, .document_small,
 .document_large textarea, .document_medium textarea, .document_small textarea,
-.document_large textarea-lg, .document_medium textarea-lg, .document_small textarea-lg { padding: 0px 12px 0px 12px; }
-.document, .document textarea, .document textarea-lg { font-size: 18px }
-.document_large, .document_large textarea, .document_large textarea-lg, .modal_text {
+.document_large textarea-lg, .document_medium textarea-lg, .document_small textarea-lg {
+	padding: 0px 12px 0px 12px;
+}
+
+.document_large, .document_large textarea, .document_large textarea-lg {
   font-size: 24px;
   text-align: justify;
 }
-.document_medium, .document_medium textarea, .document_medium textarea-lg { font-size: 20px }
-.document_small, .document_small textarea, .document_small textarea-lg { font-size: 14px; }
+.document_medium, .document_medium textarea, .document_medium textarea-lg {
+	font-size: 20px
+}
+
+.document, .document textarea, .document textarea-lg {
+	font-size: 18px
+}
+
+.document_small, .document_small textarea, .document_small textarea-lg {
+	font-size: 14px;
+}
+
 sup { vertical-align: super; }
+
 sub { vertical-align: sub; }
+
 .ellipsis {
   display: block;
   overflow: hidden;
@@ -223,21 +237,25 @@ sub { vertical-align: sub; }
   width: 100%;
 }
 .modal {
-  background-color: var(--color-paper-foundation);
+	background-color: var(--color-input);
+	border: 3px solid transparent;
 	box-shadow: 0 2px 5px #000;
+	box-sizing: border-box;
+  color: var(--color-text-light);
+	height: 30vh;
   left: 50%;
   margin: none;
-	min-height: 30vh;
-	min-width: 40vw;
+	overflow: hidden;
 	padding: 0px 0px 0px 0px;
   position: fixed;
   top: 50%;
 	transform: translate(-50%, -50%);
-	width: 400px;
+	width: 40vw;
 	z-index: 101;
 }
 
 .modal_text {
-	color: var(--color-text-dark);
-	padding: 50px 50px 50px 50px;
+	margin-left: 25px;
+	border-left: 10px solid transparent;
+	border-image: linear-gradient(45deg, #91f3d1, #6dc0f0) 1;
 }
