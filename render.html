@@ -15,12 +15,31 @@
 	<link href="styles/hedron.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-	<div class="data-card-row">
-		<div class="data-card" id="data-viewport" data-height="0.95" data-margin="25 25 25 25" data-width="0.66"></div>
-		<div class="data-card" id="data-controls" data-height="0.95" data-margin="25 25 25 0"  data-width="0.34">
-			<div class="data-card-html-element input-lg-container" id="drug_name_container" data-margin="25 25 0 25"  data-width="1.0">
-				<input class="data-card-html-element input-lg" id="drug_name_input" data-width="0.85" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Drug Name" spellcheck="false" />
-				<button class="data-card-html-element input-lg-button" id="drug_name_button" data-width="0.15"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+	<div class="row">
+		<!-- graph -->
+		<div class="data_card" id="data-viewport" data-height="0.95" data-margin="25 25 25 25" data-width="0.66"></div>
+		<!-- input and information -->
+		<div class="data_card" id="data-controls" data-height="0.95" data-margin="25 25 25 0"  data-width="0.34">
+			<!-- drug name input -->
+			<div class="data_card_html_element input_lg_container" id="drug_name_container" data-margin="25 25 0 25"  data-width="1.0">
+				<input class="data_card_html_element input_lg" id="drug_name_input" data-width="0.85" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Drug Name" spellcheck="false" />
+				<button class="data_card_html_element input_lg_button" id="drug_name_button" data-width="0.15"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+			</div>
+			<!-- gene name input -->
+			<div class="data_card_html_element input_lg_container" id="gene_name_container" data-margin="25 25 0 25" data-width="1.0">
+				<input class="data_card_html_element input_lg" id="gene_name_input" data-width="0.85" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Gene Name" spellcheck="false" />
+				<button class="data_card_html_element input_lg_button" id="gene_name_button" data-width="0.15"><i	class="fa fa-arrow-right" aria-hidden="true"></i></button>
+			</div>
+		</div>
+	</div>
+	<div class="modal_container" id="initial-modal">
+		<div class="modal">
+			<div class="row">
+				<div class="container" style="width: 33%">
+				</div>
+				<div class="modal_text" style="width:67%">
+					<p>Loading database files</p>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -30,14 +49,27 @@
 		let figure = new FIGURE();
 		let screen = { x: 0, y: 0 };
 
+		///////////////////////////////////////////////////////////////////////////
+		// ELEMENT EVENT LISTENERES ///////////////////////////////////////////////
+
+		// drug name input field and submit button
 		document.getElementById('drug_name_input').addEventListener('keyup', (e) => {
 			if (e.key === 'Enter') {
-				console.log(e.target.value);
+				window.api.send('toMain', { command: 'drug_name_input', data: e.target.value });
 			}
 		});
-
 		document.getElementById('drug_name_button').addEventListener('click', (e) => {
-			console.log(document.getElementById('drug_name_input').value);
+			window.api.send('toMain', { command: 'drug_name_input', data: document.getElementById('drug_name_input').value });
+		});
+
+		// gene name input field and submit button
+		document.getElementById('gene_name_input').addEventListener('keyup', (e) => {
+			if (e.key === 'Enter') {
+				window.api.send('toMain', { command: 'gene_name_input', data: e.target.value });
+			}
+		});
+		document.getElementById('gene_name_button').addEventListener('click', (e) => {
+			window.api.send('toMain', { command: 'gene_name_input', data: document.getElementById('gene_name_input').value });
 		});
 
 		///////////////////////////////////////////////////////////////////////////
@@ -77,7 +109,7 @@
 		function update_data_elements(parent_element, class_name) {
 			const	parent_size = get_element_size(parent_element);
 			parent_element = parent_element || document;
-			class_name = class_name || 'data-card';
+			class_name = class_name || 'data_card';
 			const elements = parent_element.getElementsByClassName(class_name);
 			for (let i = 0; i < elements.length; i++) {
 				const offset = { x: 0, y: 0 };
@@ -100,7 +132,7 @@
 					size.y = Math.floor((parent_size.y * scale.y) - offset.y).toString() + 'px';
 					elements[i].style.height = size.y;
 				}
-				update_data_elements(elements[i], 'data-card-html-element');
+				update_data_elements(elements[i], 'data_card_html_element');
 			}
 		}
 
@@ -115,7 +147,17 @@
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
 					case 'console.log': { console.log(arg.data); break; }
 					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
+					case 'hide': {
+						const element = document.getElementById(arg.data);
+						if (element) { element.style.display = "none"; }
+						break;
+					}
 					case 'initialize': { screen = get_screen_size(); update_data_elements(); break; }
+					case 'show': {
+						const element = document.getElementById(arg.data);
+						if (element) { element.style.display = "block"; }
+						break;
+					}
 					case 'window_resize': { screen = get_screen_size(); update_data_elements(); break; }
 
 					//aplication-specific commands
@@ -127,9 +169,16 @@
 						break;
 					}
 
+					case 'gene_name_autocomplete': {
+						const gene_names = JSON.parse(arg.data);
+						const gene_name_container = document.getElementById('gene_name_container');
+						const gene_name_input = document.getElementById('gene_name_input');
+						autocomplete(gene_name_input, gene_names, gene_name_container);
+						break;
+					}
+
 					case 'signalink': {
 						const network_data = JSON.parse(arg.data);
-						console.log(network_data);
 						const data_viewport = document.getElementById('data-viewport');
 						const network = new figure.NETWORK(arg.data, data_viewport);
 						break;

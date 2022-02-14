@@ -64,6 +64,20 @@ function DRUGBANK() {
 		return new_drugbank.clone();
 	}
 
+	this.get_drugbank_id_by_name = (name) => {
+		name = name.toLowerCase();
+		let drugbank_id = '';
+		const common_name = this.filter_by('common_name', name);
+		const synonyms = this.filter_by('synonyms', name);
+		if (common_name.vocabulary.length) { drugbank_id = common_name.vocabulary[0].drugbank_id; }
+		else if (synonyms.vocabulary.length) { drugbank_id = synonyms.vocabulary[0].drugbank_id; }
+		return drugbank_id;
+	}
+
+	this.get_genes_by_drugbank_id = (drugbank_id) => {
+		return this.filter_by('drug_ids', drugbank_id);
+	}
+
 	this.get_unique = (parameter) => {
 		const arr = [];
 		if (!parameter || typeof (parameter) !== 'string') { return arr; }
@@ -95,6 +109,17 @@ function DRUGBANK() {
 		const synonyms = this.get_unique('synonyms');
 		const arr = common_names.concat(synonyms);
 		const names = Array.from(new Set(arr));
+		names.sort((a, b) => {
+			if (a < b) { return -1; }
+			if (a > b) { return 1; }
+			return 0;
+		});
+		return names;
+	}
+
+	this.get_unique_gene_names = () => {
+		const gene_names = this.get_unique('gene_name');
+		const names = Array.from(new Set(gene_names));
 		names.sort((a, b) => {
 			if (a < b) { return -1; }
 			if (a > b) { return 1; }
@@ -164,11 +189,13 @@ function DRUGBANK() {
 				this.vocabulary[i].accession_numbers = this.vocabulary[i].accession_numbers.split(' | ');
 			}
 			else { this.vocabulary[i].accession_numbers = []; }
+			if (this.vocabulary[i].common_name && typeof (this.vocabulary[i].common_name) === 'string') { this.vocabulary[i].common_name = this.vocabulary[i].common_name.toLowerCase(); }
 			if (this.vocabulary[i].synonyms && typeof (this.vocabulary[i].synonyms) === 'string') {
 				this.vocabulary[i].synonyms = this.vocabulary[i].synonyms.split(' | ');
 				// remove entries with non-Latin characters
 				for (let j = this.vocabulary[i].synonyms.length - 1; j >= 0; j--) {
 					this.vocabulary[i].synonyms[j] = this.vocabulary[i].synonyms[j].normalize('NFD');
+					this.vocabulary[i].synonyms[j] = this.vocabulary[i].synonyms[j].toLowerCase();
 					if (this.vocabulary[i].synonyms[j].match(/[\u0300-\u036f]/) !== null) {
 						this.vocabulary[i].synonyms.splice(j, 1);
 					}

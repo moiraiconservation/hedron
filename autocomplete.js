@@ -13,10 +13,15 @@ function autocomplete(input, arr, append_to_html_element) {
 		if (!text) { return false; }
 		const list = document.createElement('div');
 		list.id = 'autocomplete-list-' + e.id;
-		list.classList.add('autocomplete-items');
+		list.classList.add('autocomplete_items');
 		list.style.width = append_to_html_element.offsetWidth + 'px';
 		list.style.marginLeft = append_to_html_element.style.marginLeft;
-		append_to_html_element.parentNode.appendChild(list);
+		// insert the list immediately after append_to_html_element in the DOM
+		append_to_html_element.parentNode.insertBefore(list, append_to_html_element.nextSibling);
+		const location = list.getBoundingClientRect();
+		list.style.position = 'fixed';
+		list.style.left = location.left;
+		list.style.top = location.top;
 		
 		for (let i = 0; i < arr.length; i++) {
 			if (arr[i] && typeof (arr[i]) === 'string' && arr[i].substr(0, text.length).toUpperCase() == text.toUpperCase()) {
@@ -25,10 +30,13 @@ function autocomplete(input, arr, append_to_html_element) {
 				list_element.innerHTML += arr[i].substr(text.length);
 				list_element.innerHTML += '<input type="hidden" value="' + arr[i] + '">';
 
-				list_element.addEventListener('click', function (e) {
-					input.value = e.target.getElementsByTagName('input')[0].value;
-					input.focus();
-					closeAllLists();
+				list_element.addEventListener('click', (e) => {
+					const hidden_input_field = e.target.getElementsByTagName('input');
+					if (hidden_input_field?.[0]?.value) {
+						input.value = e.target.getElementsByTagName('input')[0].value;
+						input.focus();
+						closeAllLists();
+					}
 				});
 
 				list.appendChild(list_element);
@@ -77,11 +85,11 @@ function autocomplete(input, arr, append_to_html_element) {
 		removeActive(x);
 		if (currentFocus >= x.length) { currentFocus = 0; }
 		if (currentFocus < 0) { currentFocus = (x.length - 1); }
-		x[currentFocus].classList.add('autocomplete-active');
+		x[currentFocus].classList.add('autocomplete_active');
 	}
 	
 	function closeAllLists(list_element) {
-		var x = document.getElementsByClassName('autocomplete-items');
+		var x = document.getElementsByClassName('autocomplete_items');
 		for (var i = 0; i < x.length; i++) {
 			if (list_element != x[i] && list_element != input) {
 				x[i].parentNode.removeChild(x[i]);
@@ -91,7 +99,7 @@ function autocomplete(input, arr, append_to_html_element) {
 
 	function removeActive(x) {
 		for (var i = 0; i < x.length; i++) {
-			x[i].classList.remove('autocomplete-active');
+			x[i].classList.remove('autocomplete_active');
 		}
 	}
 

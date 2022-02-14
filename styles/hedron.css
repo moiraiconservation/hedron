@@ -60,29 +60,21 @@ button:focus {
 }
 
 /*///////////////////////////////////////////////////////////////////////////*/
-/* data elements                                                             */
+/* basic classes                                                             */
 
-.data-card {
-	background-color: #0c162d;
-  border-radius: 15px;
-	box-sizing: border-box;
-	overflow: hidden;
-	padding: 0;
-}
-
-.data-card-column {
+.column {
 	display: flex;
 	flex-direction: column;
 	margin: 0;
 	padding: 0;
 }
 
-.data-card-html-element {
-	display: block;
-	box-sizing: border-box;
+.container {
+	overflow: hidden;
+	padding: 0;
 }
 
-.data-card-row {
+.row {
 	display: flex;
 	flex-direction: row;
 	margin: 0;
@@ -90,9 +82,70 @@ button:focus {
 }
 
 /*///////////////////////////////////////////////////////////////////////////*/
+/* text                                                                      */
+
+h1 {
+  font-size: 4.0em;
+  -webkit-font-smoothing: antialiased;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+  text-rendering: optimizeLegibility;
+}
+p, h2, h3, h4, h5, h6,
+.document, .document_large, .document_medium, .document_small, .document_title,
+.document textarea, .document_large textarea, .document_medium textarea, .document_small textarea,
+.document textarea-lg, .document_large textarea-lg, .document_medium textarea-lg, .document_small textarea-lg,
+label, .modal_text, textarea {
+  -moz-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.03em;
+  line-height: 1.77em;
+  word-wrap: break-word;
+  text-rendering: optimizelegibility;
+}
+.document_large, .document_medium, .document_small,
+.document_large textarea, .document_medium textarea, .document_small textarea,
+.document_large textarea-lg, .document_medium textarea-lg, .document_small textarea-lg { padding: 0px 12px 0px 12px; }
+.document, .document textarea, .document textarea-lg { font-size: 18px }
+.document_large, .document_large textarea, .document_large textarea-lg, .modal_text {
+  font-size: 24px;
+  text-align: justify;
+}
+.document_medium, .document_medium textarea, .document_medium textarea-lg { font-size: 20px }
+.document_small, .document_small textarea, .document_small textarea-lg { font-size: 14px; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+.ellipsis {
+  display: block;
+  overflow: hidden;
+  position: relative;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/*///////////////////////////////////////////////////////////////////////////*/
+/* data elements                                                             */
+
+.data_card {
+	background-color: #0c162d;
+  border-radius: 15px;
+	box-sizing: border-box;
+	overflow: hidden;
+	padding: 0;
+}
+
+.data_card_html_element {
+	display: block;
+	box-sizing: border-box;
+}
+
+/*///////////////////////////////////////////////////////////////////////////*/
 /* input                                                                     */
 
-.input-lg-container {
+.input_lg_container {
 	display: flex;
 	border-left: none;
 	border-right: none;
@@ -101,11 +154,11 @@ button:focus {
 	border-bottom: 3px solid transparent;
 }
 
-.input-lg-container:focus-within {
+.input_lg_container:focus-within {
 	border-image: linear-gradient(45deg, #91f3d1, #6dc0f0) 1;
 }
 
-.input-lg, .input-lg-button {
+.input_lg, .input_lg_button {
 	background-color: var(--color-input);
 	border-bottom: 3px solid transparent;
 	border-left: none;
@@ -119,18 +172,18 @@ button:focus {
   padding: 10px 16px;
 }
 
-.input-lg-button {
+.input_lg_button {
 	cursor: pointer;
 }
 
-.input-lg-button:hover {
+.input_lg_button:hover {
 	color: var(--color-text-light);
 }
 
 ::placeholder, .input-lg-button { color: var(--color-placeholder); }
 
 .autocomplete { position: relative; }
-.autocomplete-items {
+.autocomplete_items {
   background-color: var(--color-input);
   border-bottom: 2px solid transparent;
   border-left: 2px solid transparent;
@@ -141,18 +194,50 @@ button:focus {
   color: var(--color-text-light);
 }
 
-.form-control ~ .autocomplete-items { top: 46px; }
-.autocomplete-items div {
+.form-control ~ .autocomplete_items { top: 46px; }
+.autocomplete_items div {
   cursor: pointer;
   padding: 10px;
 }
 
-.autocomplete-items div:hover {
+.autocomplete_items div:hover {
   color: var(--color-text-light);
   background-color: green;
 }
-.autocomplete-active {
+.autocomplete_active {
   background-color: darkgreen;
   color: var(--color-text-light);
 }
 
+/*///////////////////////////////////////////////////////////////////////////*/
+/* modals                                                                    */
+
+.modal_container {
+  background-color: transparent;
+  display: none;
+  height: 100%;
+  left: 0px;
+  overflow: hidden;
+  position: fixed;
+  top: 0px;
+  width: 100%;
+}
+.modal {
+  background-color: var(--color-paper-foundation);
+	box-shadow: 0 2px 5px #000;
+  left: 50%;
+  margin: none;
+	min-height: 30vh;
+	min-width: 40vw;
+	padding: 0px 0px 0px 0px;
+  position: fixed;
+  top: 50%;
+	transform: translate(-50%, -50%);
+	width: 400px;
+	z-index: 101;
+}
+
+.modal_text {
+	color: var(--color-text-dark);
+	padding: 50px 50px 50px 50px;
+}

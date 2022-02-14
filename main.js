@@ -14,13 +14,17 @@ const path = require('path');
 const { DATA } = require('./js/data.js');
 const { DRUGBANK } = require('./database/drugbank.js');
 const { GRAPH } = require('./js/graph.js');
-const { SEQUENCES } = require('./js/sequences.js');
 const { SIGNALINK } = require('./database/signalink.js');
-const { STATS } = require('./js/stats.js');
-const data = new DATA();
 const drugbank = new DRUGBANK();
 const signalink = new SIGNALINK();
-const stats = new STATS();
+let graph = new GRAPH();
+
+const project = {
+	drug_vocabulary: 'data/drugbank_vocabulary.csv',
+	gene_targets: 'data/drugbank_targets.csv',
+	signallink: 'data/signalink.csv'
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
@@ -57,6 +61,22 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.qui
 
 ///////////////////////////////////////////////////////////////////////////////
 // FUNCTIONS //////////////////////////////////////////////////////////////////
+
+async function initialize() {
+	win.main.webContents.send('toRender', { command: 'show', data: 'initial-modal' });
+	await drugbank.load_xlsx_target_polypeptides_file(project.gene_targets);
+	await drugbank.load_xlsx_vocabulary_file(project.drug_vocabulary);
+	await signalink.load_xlsx_file(project.signallink);
+	graph = signalink.export_as_graph();
+	const drug_names = drugbank.get_unique_drug_names();
+	const gene_names = drugbank.get_unique_gene_names();
+	win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(drug_names) });
+	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
+	//win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
+
+	//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
+	//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(graph) });
+}
 
 function show_window(filename) {
 	if (typeof (filename) === 'undefined') { filename = 'render.html'; }
@@ -109,6 +129,7 @@ function show_window(filename) {
 	win.main.once('ready-to-show', () => {
 		win.main.show();
 		win.main.webContents.send('toRender', { command: 'initialize' });
+		initialize();
 	});
 }
 
@@ -242,31 +263,30 @@ ipc.on('toMain', async (event, arg) => {
 		
 		switch (arg.command) {
 
-			case 'open_drugbank_target_polypeptides': {
-				await drugbank.load_xlsx_target_polypeptides_file(arg.data.filePaths[0]);
-				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
+			case 'drug_name_input': {
+				const drugbank_id = drugbank.get_drugbank_id_by_name(arg.data);
+				const genes = drugbank.get_genes_by_drugbank_id(drugbank_id);
+				const uniprot = genes.get_unique('uniprot_id');
+				//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(uniprot) });
+				const nodes = graph.filter_by_id(uniprot);
+				//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(nodes) });
+				const subgraph = graph.subgraph_from_nodes(nodes);
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(subgraph) });
+				//console.log('Starting force directed layout');
+				//subgraph.force_directed_layout();
+				//console.log('Finished force direct layout');
+				//const json = subgraph.export_as_json();
+				//win.main.webContents.send('toRender', { command: 'signalink', data: json });
+				//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(subgraph) });
+
 				break;
 			}
 
-			case 'open_drugbank_vocabulary': {
-				await drugbank.load_xlsx_vocabulary_file(arg.data.filePaths[0]);
-				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
-				const names = drugbank.get_unique_drug_names();
-				win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(names) });
+			case 'gene_name_input': {
+				win.main.webContents.send('toRender', { command: 'console.log', data: 'Gene: ' + arg.data });
 				break;
 			}
 
-			case 'open_signalink': {
-				await signalink.load_xlsx_file(arg.data.filePaths[0]);
-				const graph = signalink.export_as_graph();
-				graph.force_directed_layout();
-
-				const json = graph.export_as_json();
-				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(signalink) });
-				win.main.webContents.send('toRender', { command: 'signalink', data: json });
-				break;
-			}
-	
 		}
 
 	}

@@ -309,13 +309,16 @@ function FIGURE() {
 		}
 		
 		// styles
+		const cs_highlight0 = this.cargo[0].get_circle_style();
 		const cs_highlight1 = this.cargo[0].get_circle_style();
 		const cs_highlight2 = this.cargo[0].get_circle_style();
 		const ls_highlight1 = this.cargo[0].get_line_style();
+		cs_highlight0.set_color('#ffa300');
 		cs_highlight1.set_color('#c90e8f');
 		cs_highlight2.set_color('#ff89ef');
 		ls_highlight1.set_color('#c90e8f');
 		ls_highlight1.set_line_width(); // use default
+		cs_highlight0.set_glow(30);
 		cs_highlight1.set_glow(30);
 		cs_highlight2.set_glow(30);
 
@@ -380,7 +383,8 @@ function FIGURE() {
 			}
 			// draw circles
 			for (let i = 0; i < this.cargo.length; i++) {
-				if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(cs_highlight2); }
+				if (this.cargo[i].node.highlighted) { this.cargo[i].circle.draw(cs_highlight0); }
+				else if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(cs_highlight2); }
 				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw(cs_highlight1); }
 				else { this.cargo[i].circle.draw(); }
 				if (this.cargo[i].circle.radius >= 10) { this.cargo[i].display_name(); }
