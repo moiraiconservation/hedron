@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // hugo.js
 
-const { IO } = require('./io.js');
-const { PATHER } = require('./pather.js');
+const { IO } = require('../js/io.js');
+const { PATHER } = require('../js/pather.js');
 const io = new IO();
 const pather = new PATHER();
 
