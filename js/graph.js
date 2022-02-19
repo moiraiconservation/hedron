@@ -34,7 +34,7 @@ function EDGE() {
 }
 
 function FD_OPTIONS() {
-	// Standardized force-directed layout function options.
+	// Standardized force-directed layout function options
 	this.damping = 0.99;
 	this.pixels_per_unit = 50;
 	this.force_threshold = 1.00;
@@ -100,8 +100,8 @@ function NODE() {
 		return n;
 	}
 
-	this.euclidean_distance_to_node = (node) => {
-		const v = this.vector_to_node(node);
+	this.euclidean_distance_to_node = (node_v) => {
+		const v = this.vector_to_node(node_v);
 		return Math.sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
 	}
 
@@ -155,19 +155,19 @@ function NODE() {
 		return v;
 	}
 
-	this.vector_from_node = (node) => {
+	this.vector_from_node = (node_v) => {
 		const vector = { x: 0, y: 0, z: 0 }
-		vector.x = (node.x - this.x) * -1.0;
-		vector.y = (node.y - this.y) * -1.0;
-		vector.z = (node.z - this.z) * -1.0;
+		vector.x = (node_v.x - this.x) * -1.0;
+		vector.y = (node_v.y - this.y) * -1.0;
+		vector.z = (node_v.z - this.z) * -1.0;
 		return vector;
 	}
 
-	this.vector_to_node = (node) => {
+	this.vector_to_node = (node_v) => {
 		const vector = { x: 0, y: 0, z: 0 }
-		vector.x = node.x - this.x;
-		vector.y = node.y - this.y;
-		vector.z = node.z - this.z;
+		vector.x = node_v.x - this.x;
+		vector.y = node_v.y - this.y;
+		vector.z = node_v.z - this.z;
 		return vector;
 	}
 
@@ -195,7 +195,7 @@ function GRAPH() {
 	}
 
 	this.centroid = () => {
-		const mean = { x: 0, y: 0, z: 0 }
+		const mean = new NODE();
 		if (!this.cargo.length) { return mean; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			mean.x += this.cargo[i].x;
@@ -230,7 +230,7 @@ function GRAPH() {
 		return cargo;
 	}
 
-	this.distribution_of_euclidean_distance_to_node = (node_u) => {
+	this.distribution_of_euclidean_distances_to_node = (node_u) => {
 		const index = node_u.index;
 		const distribution = [];
 		for (let i = 0; i < this.cargo.length; i++) {
@@ -242,11 +242,11 @@ function GRAPH() {
 		return distribution;
 	}
 
-	this.distribution_of_edge_length = () => {
+	this.distribution_of_euclidean_distances = () => {
 		const distribution = [];
 		const coordinates = [];
 		for (let u = 0; u < this.cargo.length; u++) {
-			for (let v = 0; v < this.cargo.length; v++) {
+			for (let v = u + 1; v < this.cargo.length; v++) {
 				if (u !== v) {
 					const node_u = this.cargo[u].clone();
 					const node_v = this.cargo[v].clone();
@@ -280,22 +280,22 @@ function GRAPH() {
 		//	total force:
 		//		f_total() = summation(f_att(u, v)) + summation(f_rep(u, v)) * damping
 
-		const layout = graph || this.cargo;
+		const layout = graph || this.clone();
 		options = options || new FD_OPTIONS();
 		let iteration = 1;
 
 		while (iteration < options.max_iterations) {
 			let max_force = -Infinity;
 
-			for (let u = 0; u < layout.length; u++) {
-				layout[u].clear_forces();
+			for (let u = 0; u < layout.cargo.length; u++) {
+				layout.cargo[u].clear_forces();
 				// calculate the repuslive force for each node
-				for (let v = 0; v < layout.length; v++) {
+				for (let v = 0; v < layout.cargo.length; v++) {
 					
-					if (u !== v && !layout[u].locked) {
+					if (u !== v && !layout.cargo[u].locked) {
 						const attraction = { x: 0, y: 0, z: 0 };
-						const node_u = layout[u].clone();
-						const node_v = layout[v].clone();
+						const node_u = layout.cargo[u].clone();
+						const node_v = layout.cargo[v].clone();
 						const repulsion = { x: 0, y: 0, z: 0 };
 						node_u.scale_coordinates(1 / options.pixels_per_unit);
 						node_v.scale_coordinates(1 / options.pixels_per_unit);
@@ -312,9 +312,9 @@ function GRAPH() {
 						repulsion.x = repulsion_factor * unit_vu.x;
 						repulsion.y = repulsion_factor * unit_vu.y;
 						repulsion.z = repulsion_factor * unit_vu.z;
-						layout[u].repulsion.x += repulsion.x;
-						layout[u].repulsion.y += repulsion.y;
-						layout[u].repulsion.z += repulsion.z;
+						layout.cargo[u].repulsion.x += repulsion.x;
+						layout.cargo[u].repulsion.y += repulsion.y;
+						layout.cargo[u].repulsion.z += repulsion.z;
 						
 						// calculate the attractive force for adjacent nodes
 						if (node_u.is_adjacent(node_v)) {
@@ -322,39 +322,39 @@ function GRAPH() {
 							attraction.x = (attraction_factor * unit_uv.x) - repulsion.x;
 							attraction.y = (attraction_factor * unit_uv.y) - repulsion.y;
 							attraction.z = (attraction_factor * unit_uv.z) - repulsion.z;
-							layout[u].attraction.x += attraction.x;
-							layout[u].attraction.y += attraction.y;
-							layout[u].attraction.z += attraction.z;
+							layout.cargo[u].attraction.x += attraction.x;
+							layout.cargo[u].attraction.y += attraction.y;
+							layout.cargo[u].attraction.z += attraction.z;
 						}
 					}
 				} // done comparing u node to all v nodes
 
-				layout[u].force.x = (layout[u].repulsion.x + layout[u].attraction.x) * options.damping;
-				layout[u].force.y = (layout[u].repulsion.y + layout[u].attraction.y) * options.damping;
-				layout[u].force.z = (layout[u].repulsion.z + layout[u].attraction.z) * options.damping;
-				const force_magnitude = Math.sqrt((layout[u].force.x * layout[u].force.x) + (layout[u].force.y * layout[u].force.y) + (layout[u].force.z * layout[u].force.z));
+				layout.cargo[u].force.x = (layout.cargo[u].repulsion.x + layout.cargo[u].attraction.x) * options.damping;
+				layout.cargo[u].force.y = (layout.cargo[u].repulsion.y + layout.cargo[u].attraction.y) * options.damping;
+				layout.cargo[u].force.z = (layout.cargo[u].repulsion.z + layout.cargo[u].attraction.z) * options.damping;
+				const force_magnitude = Math.sqrt((layout.cargo[u].force.x * layout.cargo[u].force.x) + (layout.cargo[u].force.y * layout.cargo[u].force.y) + (layout.cargo[u].force.z * layout.cargo[u].force.z));
 				if (force_magnitude > max_force) { max_force = force_magnitude; }
 
 			} // done searching all u nodes
 
 			// convert back to screen scale
-			for (let i = 0; i < layout.length; i++) {
-				layout[i].x += Math.round(layout[i].force.x * options.pixels_per_unit);
-				layout[i].y += Math.round(layout[i].force.y * options.pixels_per_unit);
-				layout[i].z += Math.round(layout[i].force.z * options.pixels_per_unit);
+			for (let i = 0; i < layout.cargo.length; i++) {
+				layout.cargo[i].x += Math.round(layout.cargo[i].force.x * options.pixels_per_unit);
+				layout.cargo[i].y += Math.round(layout.cargo[i].force.y * options.pixels_per_unit);
+				layout.cargo[i].z += Math.round(layout.cargo[i].force.z * options.pixels_per_unit);
 			}
 
 			options.damping = options.damping * options.damping;
 			if (max_force < options.force_threshold) {
 				if (graph) { return layout; }
-				else { this.cargo = layout; return; }
+				else { this.cargo = layout.cargo; return; }
 			}
 			iteration = iteration + 1;
 		
 		} // while loop
 
 		if (graph) { return layout; }
-		else { this.cargo = layout; return; }
+		else { this.cargo = layout.cargo; return; }
 
 	}
 
@@ -390,6 +390,10 @@ function GRAPH() {
 		}
 		return Array.from(new Set(arr));
 	}
+
+	this.get_unique_id = () => { return this.get_unique('id'); }
+
+	this.get_unique_name = () => { return this.get_unique('name'); }
 
 	this.highlight_nodes = (nodes) => {
 		if (!nodes) { return; }

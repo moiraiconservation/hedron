@@ -32,6 +32,8 @@ function DRUGBANK() {
 
 	this.filter_by = (parameter, filter) => {
 		const new_drugbank = new DRUGBANK();
+		new_drugbank.path.target_polypeptides = this.path.target_polypeptides;
+		new_drugbank.path.vocabulary = this.path.vocabulary;
 		if (!parameter || typeof (parameter) !== 'string') { return new_drugbank; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {

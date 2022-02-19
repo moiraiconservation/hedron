@@ -30,6 +30,10 @@
 				<input class="data_card_html_element input_lg" id="gene_name_input" data-width="0.85" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Gene Name" spellcheck="false" />
 				<button class="data_card_html_element input_lg_button" id="gene_name_button" data-width="0.15"><i	class="fa fa-arrow-right" aria-hidden="true"></i></button>
 			</div>
+			<!-- output terminal -->
+			<div class="data_card_html_element container_scroll_y" data-height="0.8" data-margin="50 25 25 25" data-width="1.0">
+				<div class="data_card_html_element" id="terminal" height="auto" width="100%"></div>
+			</div>
 		</div>
 	</div>
 	<!-- initial modal -->
@@ -94,7 +98,7 @@
 		});
 
 		///////////////////////////////////////////////////////////////////////////
-		// FUNCTIONS //////////////////////////////////////////////////////////////
+		// HEDRON FUNCTIONS ///////////////////////////////////////////////////////
 
 		function get_element_margins(html_element) {
 			const margin = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -166,6 +170,11 @@
 
 					// core commands
 					case 'bounce': { window.api.send('toMain', { command: arg.subcommand, success: arg.success, data: arg.data }); break; }
+					case 'clear': {
+						const element = document.getElementById(arg.data);
+						if (element) { element.innerHTML = ""; }
+						break;
+					}
 					case 'console.log': { console.log(arg.data); break; }
 					case 'console.log json': { console.log(JSON.parse(arg.data)); break; }
 					case 'hide': {
@@ -187,6 +196,29 @@
 						const drug_name_container = document.getElementById('drug_name_container');
 						const drug_name_input = document.getElementById('drug_name_input');
 						autocomplete(drug_name_input, drug_names, drug_name_container);
+						break;
+					}
+
+					case 'drug_to_gene_table': {
+						const table = JSON.parse(arg.data);
+						table.cargo.sort((a, b) => {
+							if (a.gene_name < b.gene_name) { return -1; }
+							if (a.gene_name > b.gene_name) { return 1; }
+							return 0;
+						});
+						const terminal = document.getElementById('terminal');
+						terminal.innerHTML = '';
+						let html = '<table>';
+						html += '<thead><tr><th>Gene</th><th>Name</th></tr></thead>';
+						for (let i = 0; i < table.cargo.length; i++) {
+							html += '<tr>';
+							html += '<td>' + table.cargo[i].gene_name + '</td>';
+							html += '<td>' + table.cargo[i].name + '</td>';
+							html += '</tr>';
+						}
+						html += '</table>';
+						terminal.innerHTML = html;
+						console.log(table);
 						break;
 					}
 

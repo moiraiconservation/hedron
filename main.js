@@ -265,14 +265,34 @@ ipc.on('toMain', async (event, arg) => {
 
 			case 'drug_name_input': {
 				win.main.webContents.send('toRender', { command: 'show', data: 'building-graph-modal' });
+				let subgraph = new GRAPH();
 				const drugbank_id = drugbank.get_drugbank_id_by_name(arg.data);
-				const genes = drugbank.get_genes_by_drugbank_id(drugbank_id);
-				const uniprot = genes.get_unique('uniprot_id');
-				const nodes = graph.filter_by_id(uniprot);
-				const subgraph = graph.subgraph_from_nodes(nodes);
-				subgraph.force_directed_layout();
-				const json = subgraph.export_as_json();
-				win.main.webContents.send('toRender', { command: 'signalink', data: json });
+				if (drugbank_id) {
+					const genes = drugbank.get_genes_by_drugbank_id(drugbank_id);
+					if (genes.cargo.length) {
+						const uniprot = genes.get_unique('uniprot_id');
+						if (uniprot.length) {
+							const nodes = graph.filter_by_id(uniprot);
+							if (nodes.cargo.length) {
+								subgraph = graph.subgraph_from_nodes(nodes);
+								if (subgraph.cargo.length) {
+									subgraph.force_directed_layout();
+
+									// get table information
+									const targets = genes.filter_by('gene_name', nodes.get_unique('name'));
+									const all_targets = drugbank.filter_by('uniprot_id', subgraph.get_unique_id() );
+									win.main.webContents.send('toRender', { command: 'drug_to_gene_table', data: JSON.stringify(all_targets) });
+
+								}
+							}
+						}
+					}
+				}
+				if (subgraph.cargo.length) {
+					const json = subgraph.export_as_json();
+					win.main.webContents.send('toRender', { command: 'signalink', data: json });				
+				}
+				else { win.main.webContents.send('toRender', { command: 'clear', data: 'data-viewport' }); }
 				win.main.webContents.send('toRender', { command: 'hide', data: 'building-graph-modal' });
 				break;
 			}
