@@ -14,14 +14,17 @@ const path = require('path');
 const { DATA } = require('./js/data.js');
 const { DRUGBANK } = require('./database/drugbank.js');
 const { GRAPH } = require('./js/graph.js');
+const { HUGO } = require('./js/hugo.js');
 const { SIGNALINK } = require('./database/signalink.js');
 const drugbank = new DRUGBANK();
 const signalink = new SIGNALINK();
 let graph = new GRAPH();
+const hugo = new HUGO();
 
 const project = {
 	drug_vocabulary: 'data/drugbank_vocabulary.csv',
 	gene_targets: 'data/drugbank_targets.csv',
+	hugo: 'data/gene_with_product.txt',
 	signallink: 'data/signalink.csv'
 };
 
@@ -67,15 +70,16 @@ async function initialize() {
 	await drugbank.load_xlsx_target_polypeptides_file(project.gene_targets);
 	await drugbank.load_xlsx_vocabulary_file(project.drug_vocabulary);
 	await signalink.load_xlsx_file(project.signallink);
+	await hugo.load_json_file(project.hugo);
 	graph = signalink.export_as_graph();
 	const drug_names = drugbank.get_unique_drug_names();
 	const gene_names = drugbank.get_unique_gene_names();
 	win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(drug_names) });
 	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
-	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
+	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(hugo) });
+	win.main.webContents.send('toRender', { command: 'console.log', data: hugo.is_standardized() });
 
-	//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
-	//win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(graph) });
+	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
 }
 
 function show_window(filename) {
