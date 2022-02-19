@@ -44,6 +44,10 @@ function HUGO() {
 		}
 	}
 
+	this.export_as_json = () => {
+		return JSON.stringify(this.cargo);
+	}
+
 	this.is_standardized = () => {
 		const all_keys = this.get_unique_parameters();
 		for (let i = 0; i < this.cargo.length; i++) {
