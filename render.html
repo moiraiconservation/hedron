@@ -211,14 +211,16 @@
 						let html = '<table>';
 						html += '<thead><tr><th>Gene</th><th>Name</th></tr></thead>';
 						for (let i = 0; i < table.cargo.length; i++) {
-							html += '<tr>';
-							html += '<td>' + table.cargo[i].gene_name + '</td>';
+							if (table.cargo[i].highlight) {
+								html += '<tr style="color: #ffb429; text-shadow: 0 0 5px #ffb429">';	
+							}
+							else { html += '<tr>'; }
+							html += '<td>' + table.cargo[i].symbol + '</td>';
 							html += '<td>' + table.cargo[i].name + '</td>';
 							html += '</tr>';
 						}
 						html += '</table>';
 						terminal.innerHTML = html;
-						console.log(table);
 						break;
 					}
 

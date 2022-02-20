@@ -1,24 +1,46 @@
 ///////////////////////////////////////////////////////////////////////////////
-// hugo.js
+// db.js
 
+const { DATA } = require('../js/data.js');
 const { IO } = require('../js/io.js');
 const { PATHER } = require('../js/pather.js');
-const io = new IO();
-const pather = new PATHER();
 
-function HUGO() {
+module.exports = class DB {
 
-	this.cargo = [];
+	constructor() {
+		this.cargo = [];
+		this.path = '';
+	}
 
-	this.clear = () => { this.cargo = []; }
+	add(records) {
+		if (Array.isArray(records)) {
+			for (let i = 0; i < records.length; i++) {
+				this.add(records[i]);
+			}
+		}
+		else {
+			if (records.cargo) {
+				for (let i = 0; i < records.cargo.length; i++) {
+					this.cargo.push(records.cargo[i]);
+				}
+			}
+			else { this.cargo.push(records); }
+		}
+	}
 
-	this.clone = () => {
-		const d = new DATA();
+	clear() {
+		this.cargo = [];
+		this.path = '';
+	}
+
+	clone() {
+		const d = new DB();
 		d.cargo = this.clone_cargo();
+		d.path = this.path;
 		return d;
 	}
 
-	this.clone_cargo = () => {
+	clone_cargo() {
 		const c = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const obj = JSON.parse(JSON.stringify(this.cargo[i]));
@@ -27,7 +49,7 @@ function HUGO() {
 		return c;
 	}
 
-	this.delete_by = (parameter, filter) => {
+	delete_by(parameter, filter) {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
@@ -44,11 +66,30 @@ function HUGO() {
 		}
 	}
 
-	this.export_as_json = () => {
+	delete_duplicates_by(parameter, filter) {
+		if (!parameter || typeof (parameter) !== 'string') { return; }
+		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				this.delete_duplicates_by(parameter, filter[i]);
+			}
+		}
+		else {
+			let count = 0;
+			for (let i = this.cargo.length - 1; i >= 0; i--) {
+				if (this.cargo[i][parameter] && this.cargo[i][parameter] === filter) {
+					count++;
+					if (count > 1) { this.cargo.splice(i, 1); }
+				}
+			}
+		}
+	}
+
+	export_as_json() {
 		return JSON.stringify(this.cargo);
 	}
 
-	this.is_standardized = () => {
+	is_standardized() {
 		const all_keys = this.get_unique_parameters();
 		for (let i = 0; i < this.cargo.length; i++) {
 			const keys = Object.keys(this.cargo[i]);
@@ -57,42 +98,28 @@ function HUGO() {
 		return true;
 	}
 
-	this.delete_by = (parameter, filter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return; }
-		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
+	filter_by(parameter, filter) {
+		const db = new DB();
+		if (!parameter || typeof (parameter) !== 'string') { return db; }
+		if (typeof (filter) === 'undefined') { return db; }
 		if (Array.isArray(filter)) {
 			for (let i = 0; i < filter.length; i++) {
-				this.delete_by(parameter, filter[i]);
+				db.add(this.filter_by(parameter, filter[i]));
 			}
 		}
 		else {
-			for (let i = this.cargo.length - 1; i >= 0; i--) {
-				if (this.cargo[i][parameter] && this.cargo[i][parameter] === filter) {
-					this.cargo.splice(i, 1);
+			db.cargo = this.cargo.filter((x) => {
+				if (x[parameter]) {
+					if (Array.isArray(x[parameter])) { return x[parameter].includes(filter); }
+					else { return x[parameter] === filter; }
 				}
-			}
-		}
-	}
-
-	this.filter_by = (parameter, filter) => {
-		const new_hugo = new HUGO();
-		if (!parameter || typeof (parameter) !== 'string') { return new_hugo; }
-		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
-		if (Array.isArray(filter)) {
-			for (let i = 0; i < filter.length; i++) {
-				new_hugo.add(this.filter_by(parameter, filter[i]));
-			}
-		}
-		else {
-			new_hugo.cargo = this.cargo.filter((x) => {
-				if (x[parameter]) { return x[parameter] === filter; }
 				else { return false; }
 			});
 		}
-		return new_hugo.clone();
+		return db.clone();
 	}
 
-	this.get_consensus = (parameter) => {
+	get_consensus(parameter) {
 		if (!parameter || typeof (parameter) !== 'string') { return ''; }
 		const v_list = this.get_unique(parameter);
 		if (v_list.length === 1) { return v_list[0]; }
@@ -106,7 +133,7 @@ function HUGO() {
 		return '';
 	}
 
-	this.get_consensus_data_type = (parameter) => {
+	get_consensus_data_type(parameter) {
 		if (!parameter || typeof (parameter) !== 'string') { return 'undefined'; }
 		const v_list = this.get_unique_data_type(parameter);
 		if (v_list.length === 1) { return v_list[0]; }
@@ -120,24 +147,25 @@ function HUGO() {
 		return 'undefined';
 	}
 
-	this.get_unique = (parameter) => {
-		const arr = [];
+	get_unique(parameter) {
+		let arr = [];
 		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			if (this.cargo[i][parameter]) {
-				arr.push(this.cargo[i][parameter]);
+				if (Array.isArray(this.cargo[i][parameter])) { arr = arr.concat(this.cargo[i][parameter]); }
+				else { arr.push(this.cargo[i][parameter]); }
 			}
 		}
 		return Array.from(new Set(arr));
 	}
 
-	this.get_unique_data_type = (parameter) => {
+	get_unique_data_type(parameter) {
 		const arr = [];
 		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			const keys = Object.keys(this.cargo[i]);
 			if (keys.includes(parameter)) {
-				let type = typeof(this.cargo[i][parameter]);
+				let type = typeof (this.cargo[i][parameter]);
 				if (Array.isArray(this.cargo[i][parameter])) { type = 'array'; }
 				arr.push(type);
 			}
@@ -145,7 +173,7 @@ function HUGO() {
 		return Array.from(new Set(arr));
 	}
 
-	this.get_unique_parameters = () => {
+	get_unique_parameters() {
 		let all_keys = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const keys = Object.keys(this.cargo[i]);
@@ -154,7 +182,11 @@ function HUGO() {
 		return Array.from(new Set(all_keys));
 	}
 
-	this.includes = (parameter, filter) => {
+	highlight_all() { this.set('highlight', true); }
+
+	highlight_by(parameter, filter) { this.set_by('highlight', true, parameter, filter); }
+
+	includes(parameter, filter) {
 		if (!parameter || typeof (parameter) !== 'string') { return false; }
 		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
 		if (Array.isArray(filter)) {
@@ -173,36 +205,79 @@ function HUGO() {
 		}
 	}
 
-	this.is_loaded = () => {
+	is_loaded() {
 		if (this.cargo.length) { return true; }
 		return false;
 	}
 
-	this.load = (data) => { this.cargo = data; }
+	load(data) { this.cargo = data; }
 
-	this.load_json_file = async (path) => {
+	async load_json_file(path) {
+		const io = new IO();
+		const pather = new PATHER();
 		const path_record = await pather.parse(path);
 		const full_path = await path_record.get_full_path();
 		const contents = await io.read_file(full_path);
 		if (contents) { this.cargo = JSON.parse(contents).response.docs; }
 		if (!this.is_standardized()) { this.standardize(); }
+		this.path = full_path;
 		return;
 	}
 
-	this.set = (parameter, value) => {
+	async load_xlsx_file(path) {
+		const data = new DATA();
+		const pather = new PATHER();
+		const path_record = await pather.parse(path);
+		const full_path = await path_record.get_full_path();
+		await data.load_xlsx_file(full_path);
+		this.cargo = data.clone_cargo();
+		if (!this.is_standardized()) { this.standardize(); }
+		this.path = full_path;
+	}
+
+	lock_all() { this.set('locked', true); }
+
+	lock_by(parameter, filter) { this.set_by('locked', true, parameter, filter); }
+
+	set(parameter, value) {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
-			this.cargo[i].set(parameter, value);
+			this.cargo[i][parameter] = value;
 		}
 	}
 
-	this.set_to_consensus = (parameter) => {
+	set_by(parameter1, value, parameter2, filter) {
+		if (!parameter1 || typeof (parameter1) !== 'string') { return; }
+		if (!parameter2 || typeof (parameter2) !== 'string') { return; }
+		if (typeof (filter) === 'undefined') { return; }
+		if (Array.isArray(filter)) {
+			for (let i = 0; i < filter.length; i++) {
+				this.set_by(parameter1, value, parameter2, filter[i]);
+			}
+		}
+		else {
+			for (let i = 0; i < this.cargo.length; i++) {
+				if (Array.isArray(this.cargo[i][parameter2])) {
+					if (this.cargo[i][parameter2].includes(filter)) {
+						this.cargo[i][parameter1] = value;
+					}
+				}
+				else {
+					if (this.cargo[i][parameter2] === filter) {
+						this.cargo[i][parameter1] = value;
+					}
+				}
+			}
+		}
+	}
+
+	set_to_consensus(parameter) {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		const value = this.get_consensus(parameter);
 		this.set(parameter, value);
 	}
 
-	this.standardize = () => {
+	standardize() {
 		const pt = [];
 		const parameters = this.get_unique_parameters();
 		for (let i = 0; i < parameters.length; i++) {
@@ -224,15 +299,20 @@ function HUGO() {
 					this.cargo[i][pt[j].parameter] = d;
 				}
 			}
+			// add custom hedron fields
+			if (!this.cargo[i].highlight) { this.cargo[i].highlight = false; }
+			if (!this.cargo[i].locked) { this.cargo[i].locked = false; }
 		}
 	}
 
-	this.unload = () => {
+	unload() {
 		const new_cargo = this.cargo;
 		this.clear();
 		return new_cargo;
 	}
 
-}
+	unhighlight_all() { this.set('highlight', false);	}
 
-module.exports = { HUGO: HUGO }
+	unlock_all() { this.set('locked', false); }
+
+}

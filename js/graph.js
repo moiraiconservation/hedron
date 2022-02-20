@@ -36,7 +36,7 @@ function EDGE() {
 function FD_OPTIONS() {
 	// Standardized force-directed layout function options
 	this.damping = 0.99;
-	this.pixels_per_unit = 50;
+	this.pixels_per_unit = 50.0;
 	this.force_threshold = 1.00;
 	this.ideal_spring_length = 1.00;
 	this.max_iterations = 50;
@@ -46,7 +46,7 @@ function FD_OPTIONS() {
 
 function NODE() {
 	this.attraction = { x: 0, y: 0, z: 0 };
-	this.highlighted = false;
+	this.highlight = false;
 	this.id = random.guid();
 	this.index = 0;
 	this.locked = false;
@@ -77,7 +77,7 @@ function NODE() {
 		n.attraction.x = this.attraction.x;
 		n.attraction.y = this.attraction.y;
 		n.attraction.z = this.attraction.z;
-		n.highlighted = this.highlighted;
+		n.highlight = this.highlight;
 		n.id = this.id;
 		n.index = this.index;
 		n.locked = this.locked;
@@ -99,6 +99,8 @@ function NODE() {
 		n.z = this.z;
 		return n;
 	}
+
+	this.degree = () => { return this.cargo.length; }
 
 	this.euclidean_distance_to_node = (node_v) => {
 		const v = this.vector_to_node(node_v);
@@ -391,9 +393,107 @@ function GRAPH() {
 		return Array.from(new Set(arr));
 	}
 
-	this.get_unique_id = () => { return this.get_unique('id'); }
+	this.get_unique_ids = () => { return this.get_unique('id'); }
 
-	this.get_unique_name = () => { return this.get_unique('name'); }
+	this.get_unique_names = () => { return this.get_unique('name'); }
+
+	this.graph_distance_between_nodes = (node_u, node_v, threshold) => {
+		const hierarchy = [];
+		if (!node_u || !node_v) { return hierarchy; }
+		if (node_u.id === node_v.id) { return hierarchy; }
+		threshold = threshold || 10000;
+		let found = false;
+		let level = 0;
+		hierarchy.push([node_u.id]);
+		while (!found && level < threshold) {
+			let peers = [];
+			let previous_level = [];
+			if (level) { previous_level = hierarchy[level - 1]; }
+			for (let i = 0; i < hierarchy[level].length; i++) {
+				const filtered = this.filter_by('id', hierarchy[level][i]);
+				if (filtered.cargo.length) {
+					for (let j = 0; j < filtered.cargo[0].edges.length; j++) {
+						if (!previous_level.includes(filtered.cargo[0].edges[j].target_id)) {
+							peers.push(filtered.cargo[0].edges[j].target_id);
+							if (filtered.cargo[0].edges[j].target_id === node_v.id) { found = true; }
+						}
+					}
+				}
+			}
+			peers = Array.from(new Set(peers));
+			level++;
+			hierarchy.push(peers);
+		}
+		if (found) { return hierarchy.length; }
+		else { return threshold; }
+	}
+
+	this.graph_distance_matrix = (threshold) => {
+		const matrix = new Array(this.cargo.length);
+		for (let u = 0; u < matrix.length; u++) {
+			matrix[u] = new Array(this.cargo.length).fill(0);
+		}
+		for (let u = 0; u < matrix.length; u++) {
+			const node_u = this.cargo[u];
+			for (let v = u + 1; v < matrix[u].length; v++) {
+				const node_v = this.cargo[v];
+				matrix[u][v] = this.graph_distance_between_nodes(node_u, node_v, threshold);
+				matrix[v][u] = matrix[u][v];
+			}
+		}
+		return matrix;
+	}
+
+	this.hierarchy_between_nodes = (node_u, node_v, threshold) => {
+		const hierarchy = [];
+		if (!node_u || !node_v) { return hierarchy; }
+		if (node_u.id === node_v.id) { return hierarchy; }
+		threshold = threshold || 10000;
+		let found = false;
+		let level = 0;
+		hierarchy.push([node_u.id]);
+		while (!found && level < threshold) {
+			let peers = [];
+			let previous_level = [];
+			if (level) { previous_level = hierarchy[level - 1]; }
+			for (let i = 0; i < hierarchy[level].length; i++) {
+				const filtered = this.filter_by('id', hierarchy[level][i]);
+				if (filtered.cargo.length) {
+					for (let j = 0; j < filtered.cargo[0].edges.length; j++) {
+						if (!previous_level.includes(filtered.cargo[0].edges[j].target_id)) {
+							peers.push(filtered.cargo[0].edges[j].target_id);
+							if (filtered.cargo[0].edges[j].target_id === node_v.id) { found = true; }
+						}
+					}
+				}
+			}
+			peers = Array.from(new Set(peers));
+			level++;
+			hierarchy.push(peers);
+		}
+		if (found) {
+			for (let i = hierarchy[level].length; i >= 0; i--) {
+				if (hierarchy[level][i] !== node_v.id) { hierarchy[level].splice(i, 1); }
+			}
+			previous_level = hierarchy[level];
+			for (let i = level - 1; i > 0; i--) {
+				for (let j = hierarchy[i].length - 1; j >= 0; j--) {
+					const filtered = this.filter_by('id', hierarchy[i][j]);
+					if (filtered.cargo.length) {
+						const targets = [];
+						for (let k = 0; k < filtered.cargo[0].edges.length; k++) {
+							targets.push(filtered.cargo[0].edges[k].target_id);
+						}
+						const linked = previous_level.some((x) => { return targets.includes(x); });
+						if (!linked) { hierarchy[i].splice(j, 1); }
+					}
+					else { hierarchy[i].splice(j, 1); }
+				}
+				previous_level = hierarchy[i];
+			}
+		}
+		return hierarchy;
+	}
 
 	this.highlight_nodes = (nodes) => {
 		if (!nodes) { return; }
@@ -404,7 +504,7 @@ function GRAPH() {
 		}
 		const ids = Array.from(new Set(arr));
 		for (let i = 0; i < this.cargo.length; i++) {
-			if (ids.includes(this.cargo[i].id)) { this.cargo[i].highlighted = true; }
+			if (ids.includes(this.cargo[i].id)) { this.cargo[i].highlight = true; }
 		}
 	}
 
@@ -516,55 +616,21 @@ function GRAPH() {
 		await io.write_file(full_path, contents);
 	}
 
+	this.sort_by_degree = () => {
+		this.cargo.sort((a, b) => {
+			if (a.edges.length > b.edges.length) { return -1; }
+			if (a.edges.length < b.edges.length) { return 1; }
+			return 0;
+		});
+		this.update_indices();
+	}
+
 	this.subgraph_between_nodes = (node_u, node_v, threshold) => {
 		let subgraph = new GRAPH();
 		if (!node_u || !node_v) { return subgraph; }
 		if (node_u.id === node_v.id) { return subgraph; }
 		threshold = threshold || 10000;
-		let found = false;
-		let level = 0;
-		const hierarchy = [];
-		hierarchy.push([node_u.id]);
-		while (!found && level < threshold) {
-			let peers = [];
-			let previous_level = [];
-			if (level) { previous_level = hierarchy[level - 1]; }
-			for (let i = 0; i < hierarchy[level].length; i++) {
-				const filtered = this.filter_by('id', hierarchy[level][i]);
-				if (filtered.cargo.length) {
-					for (let j = 0; j < filtered.cargo[0].edges.length; j++) {
-						if (!previous_level.includes(filtered.cargo[0].edges[j].target_id)) {
-							peers.push(filtered.cargo[0].edges[j].target_id);
-							if (filtered.cargo[0].edges[j].target_id === node_v.id) { found = true; }
-						}
-					}
-				}
-			}
-			peers = Array.from(new Set(peers));
-			level++;
-			hierarchy.push(peers);
-		}
-		if (found) {
-			for (let i = hierarchy[level].length; i >= 0; i--) {
-				if (hierarchy[level][i] !== node_v.id) { hierarchy[level].splice(i, 1); }
-			}
-			previous_level = hierarchy[level];
-			for (let i = level - 1; i > 0; i--) {
-				for (let j = hierarchy[i].length - 1; j >= 0; j--) {
-					const filtered = this.filter_by('id', hierarchy[i][j]);
-					if (filtered.cargo.length) {
-						const targets = [];
-						for (let k = 0; k < filtered.cargo[0].edges.length; k++) {
-							targets.push(filtered.cargo[0].edges[k].target_id);
-						}
-						const linked = previous_level.some((x) => { return targets.includes(x); });
-						if (!linked) { hierarchy[i].splice(j, 1); }
-					}
-					else { hierarchy[i].splice(j, 1); }
-				}
-				previous_level = hierarchy[i];
-			}
-		}
+		const hierarchy = this.hierarchy_between_nodes(node_u, node_v, threshold);
 		const arr = [];
 		for (i = 0; i < hierarchy.length; i++) {
 			for (let j = 0; j < hierarchy[i].length; j++) {
@@ -577,13 +643,15 @@ function GRAPH() {
 		return subgraph;
 	}
 
-	this.sort_by_number_of_edges = () => {
-		this.cargo.sort((a, b) => {
-			if (a.edges.length > b.edges.length) { return -1; }
-			if (a.edges.length < b.edges.length) { return 1; }
-			return 0;
-		});
-		this.update_indices();
+	this.subgraph_from_ids = (ids) => {
+		let subgraph = new GRAPH();
+		if (ids.length) {
+			const nodes = this.filter_by_id(ids);
+			if (nodes.cargo.length) {
+				subgraph = this.subgraph_from_nodes(nodes);
+			}
+		}
+		return subgraph;
 	}
 
 	this.subgraph_from_index = (index, levels) => {
@@ -635,6 +703,9 @@ function GRAPH() {
 				if (i !== j) {
 					const mini_graph = this.subgraph_between_nodes(nodes[i], nodes[j]);
 					arr = arr.concat(mini_graph.get_unique('id'));
+
+					//console.log(this.graph_distance_between_nodes(nodes[i], nodes[j]));
+
 				}
 			}
 		}

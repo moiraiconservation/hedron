@@ -11,15 +11,17 @@ const eStore = require('electron-store');
 const ipc = require('electron').ipcMain;
 const path = require('path');
 
-const { DATA } = require('./js/data.js');
-const { DRUGBANK } = require('./database/drugbank.js');
-const { GRAPH } = require('./js/graph.js');
-const { HUGO } = require('./database/hugo.js');
-const { SIGNALINK } = require('./database/signalink.js');
+// hedron classes
+const DB = require('./database/db.js');
+const DRUGBANK = require('./database/drugbank.js');
+const SIGNALINK = require('./database/signalink.js');
 const drugbank = new DRUGBANK();
+const hugo = new DB();
 const signalink = new SIGNALINK();
+
+// redron objects
+const { GRAPH } = require('./js/graph.js');
 let graph = new GRAPH();
-const hugo = new HUGO();
 
 const project = {
 	drug_vocabulary: 'data/drugbank_vocabulary.csv',
@@ -69,16 +71,14 @@ async function initialize() {
 	win.main.webContents.send('toRender', { command: 'show', data: 'initial-modal' });
 	await drugbank.load_xlsx_target_polypeptides_file(project.gene_targets);
 	await drugbank.load_xlsx_vocabulary_file(project.drug_vocabulary);
-	await signalink.load_xlsx_file(project.signallink);
 	await hugo.load_json_file(project.hugo);
+	await signalink.load_xlsx_file(project.signallink);
 	graph = signalink.export_as_graph();
 	const drug_names = drugbank.get_unique_drug_names();
 	const gene_names = drugbank.get_unique_gene_names();
 	win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(drug_names) });
 	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
 	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(hugo) });
-	win.main.webContents.send('toRender', { command: 'console.log', data: hugo.is_standardized() });
-
 	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
 }
 
@@ -270,31 +270,19 @@ ipc.on('toMain', async (event, arg) => {
 			case 'drug_name_input': {
 				win.main.webContents.send('toRender', { command: 'show', data: 'building-graph-modal' });
 				let subgraph = new GRAPH();
-				const drugbank_id = drugbank.get_drugbank_id_by_name(arg.data);
-				if (drugbank_id) {
-					const genes = drugbank.get_genes_by_drugbank_id(drugbank_id);
-					if (genes.cargo.length) {
-						const uniprot = genes.get_unique('uniprot_id');
-						if (uniprot.length) {
-							const nodes = graph.filter_by_id(uniprot);
-							if (nodes.cargo.length) {
-								subgraph = graph.subgraph_from_nodes(nodes);
-								if (subgraph.cargo.length) {
-									subgraph.force_directed_layout();
-
-									// get table information
-									const targets = genes.filter_by('gene_name', nodes.get_unique('name'));
-									const all_targets = drugbank.filter_by('uniprot_id', subgraph.get_unique_id() );
-									win.main.webContents.send('toRender', { command: 'drug_to_gene_table', data: JSON.stringify(all_targets) });
-
-								}
-							}
-						}
-					}
-				}
+				const uniprot_ids = drugbank.get_uniprot_ids_by_drug_name(arg.data);
+				subgraph = graph.subgraph_from_ids(uniprot_ids);
 				if (subgraph.cargo.length) {
+					subgraph.force_directed_layout();
 					const json = subgraph.export_as_json();
 					win.main.webContents.send('toRender', { command: 'signalink', data: json });				
+					
+					// get table information
+					const targets = hugo.filter_by('uniprot_ids', subgraph.get_unique_ids());
+					targets.delete_duplicates_by('uniprot_ids');
+					targets.highlight_by('uniprot_ids', uniprot_ids);
+					win.main.webContents.send('toRender', { command: 'drug_to_gene_table', data: JSON.stringify(targets) });
+
 				}
 				else { win.main.webContents.send('toRender', { command: 'clear', data: 'data-viewport' }); }
 				win.main.webContents.send('toRender', { command: 'hide', data: 'building-graph-modal' });

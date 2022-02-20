@@ -26,10 +26,7 @@ function autocomplete(input, arr, append_to_html_element) {
 		for (let i = 0; i < arr.length; i++) {
 			if (arr[i] && typeof (arr[i]) === 'string' && arr[i].substr(0, text.length).toUpperCase() == text.toUpperCase()) {
 				const list_element = document.createElement('div');
-				list_element.innerHTML = '<strong>' + arr[i].substr(0, text.length) + '</strong>';
-				list_element.innerHTML += arr[i].substr(text.length);
-				list_element.innerHTML += '<input type="hidden" value="' + arr[i] + '">';
-
+				list_element.innerHTML = arr[i] + '<input type="hidden" value="' + arr[i] + '">';
 				list_element.addEventListener('click', (e) => {
 					const hidden_input_field = e.target.getElementsByTagName('input');
 					if (hidden_input_field?.[0]?.value) {

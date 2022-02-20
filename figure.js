@@ -384,7 +384,7 @@ function FIGURE() {
 			}
 			// draw circles
 			for (let i = 0; i < this.cargo.length; i++) {
-				if (this.cargo[i].node.highlighted) { this.cargo[i].circle.draw(cs_highlight0); }
+				if (this.cargo[i].node.highlight) { this.cargo[i].circle.draw(cs_highlight0); }
 				else if (highlight.targets.includes(i)) { this.cargo[i].circle.draw(cs_highlight2); }
 				else if (highlight.state && highlight.index === i) { this.cargo[i].circle.draw(cs_highlight1); }
 				else { this.cargo[i].circle.draw(); }

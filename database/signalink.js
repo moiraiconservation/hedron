@@ -1,25 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // signalink.js
 
+const DB = require('./db.js');
 const { EDGE, NODE, GRAPH } = require('../js/graph.js');
-const { DATA } = require('../js/data.js');
-const data = new DATA();
 
-function SIGNALINK() {
+module.exports = class SIGNALINK extends DB {
 
-	this.cargo = [];
-	this.path = '';
+	constructor() { super(); }
 
-	this.clear = () => { this.cargo = []; }
-
-	this.clone = () => {
-		const c = new SIGNALINK();
-		c.cargo = JSON.parse(JSON.stringify(this.cargo));
-		c.path = this.path;
-		return c;
-	}
-
-	this.export_as_graph = () => {
+	export_as_graph() {
 		// create an array of unique identifiers
 		let directory = [];
 		for (let i = 0; i < this.cargo.length; i++) {
@@ -38,7 +27,7 @@ function SIGNALINK() {
 			if (records.length) {
 				node.name = node.name || records[0].source_name;
 				for (let j = 0; j < records.length; j++) {
-					const target_index = directory.indexOf(records[j].target_uniprotac); 
+					const target_index = directory.indexOf(records[j].target_uniprotac);
 					if (target_index > -1) {
 						const edge = new EDGE();
 						edge.parent_id = directory[i];
@@ -73,18 +62,5 @@ function SIGNALINK() {
 		return graph;
 	}
 
-	this.export_as_json = () => {
-		return JSON.stringify(this.cargo);
-	}
-
-	this.load_xlsx_file = async (path) => {
-		this.path = path;
-		await data.load_xlsx_file(path);
-		this.cargo = data.clone_cargo();
-	}
 
 }
-
-///////////////////////////////////////////////////////////////////////////////
-
-module.exports = { SIGNALINK: SIGNALINK }
