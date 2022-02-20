@@ -22,14 +22,56 @@ module.exports = class DRUGBANK {
 		return d;
 	}
 
-	get_drugbank_id_by_drug_name(name) {
-		name = name.toLowerCase();
+	get_drugbank_id_by_drug_name(drug_name) {
+		drug_name = drug_name.toLowerCase();
 		let drugbank_id = '';
-		const common_name = this.vocabulary.filter_by('common_name', name);
-		const synonyms = this.vocabulary.filter_by('synonyms', name);
+		const common_name = this.vocabulary.filter_by('common_name', drug_name);
+		const synonyms = this.vocabulary.filter_by('synonyms', drug_name);
 		if (common_name.cargo.length) { drugbank_id = common_name.cargo[0].drugbank_id; }
 		else if (synonyms.cargo.length) { drugbank_id = synonyms.cargo[0].drugbank_id; }
 		return drugbank_id;
+	}
+
+	get_drugbank_ids_by_gene_name(gene_name) {
+		let drugbank_ids = [];
+		const targets = this.target_polypeptides.filter_by('gene_name', gene_name);
+		if (targets.cargo.length) {
+			for (let i = 0; i < targets.cargo.length; i++) {
+				if (targets.cargo[i].drug_ids) {
+					if (Array.isArray(targets.cargo[i].drug_ids)) {
+						drugbank_ids = drugbank_ids.concat(targets.cargo[i].drug_ids);
+					}
+					else {
+						drugbank_ids.push(targets.cargo[i].drug_ids);
+					}
+				}
+			}
+		}
+		return Array.from(new Set(drugbank_ids));
+	}
+
+	get_drug_names_by_drugbank_ids(drugbank_ids) {
+		let drug_names = [];
+		const targets = this.vocabulary.filter_by('drugbank_id', drugbank_ids);
+		if (targets.cargo.length) {
+			for (let i = 0; i < targets.cargo.length; i++) {
+				if (targets.cargo[i].common_name) {
+					if (Array.isArray(targets.cargo[i].common_name)) {
+						drug_names = drug_names.concat(targets.cargo[i].common_name);
+					}
+					else {
+						drug_names.push(targets.cargo[i].common_name);
+					}
+				}
+			}
+		}
+		const arr = Array.from(new Set(drug_names));
+		arr.sort((a, b) => {
+			if (a < b) { return -1; }
+			if (a > b) { return 1; }
+			return 0;
+		});
+		return arr;
 	}
 
 	get_uniprot_ids_by_drug_name(drug_name) {

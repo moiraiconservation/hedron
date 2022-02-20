@@ -69,16 +69,21 @@ app.on('window-all-closed', () => { if (process.platform !== 'darwin') { app.qui
 
 async function initialize() {
 	win.main.webContents.send('toRender', { command: 'show', data: 'initial-modal' });
+	console.log('0%');
 	await drugbank.load_xlsx_target_polypeptides_file(project.gene_targets);
+	console.log('25%');
 	await drugbank.load_xlsx_vocabulary_file(project.drug_vocabulary);
+	console.log('50%');
 	await hugo.load_json_file(project.hugo);
+	console.log('75%');
 	await signalink.load_xlsx_file(project.signallink);
+	console.log('100%');
 	graph = signalink.export_as_graph();
 	const drug_names = drugbank.get_unique_drug_names();
 	const gene_names = drugbank.get_unique_gene_names();
 	win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(drug_names) });
 	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
-	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(hugo) });
+	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
 	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
 }
 
@@ -290,7 +295,9 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'gene_name_input': {
-				win.main.webContents.send('toRender', { command: 'console.log', data: 'Gene: ' + arg.data });
+					const drugbank_ids = drugbank.get_drugbank_ids_by_gene_name(arg.data);
+				const drug_names = drugbank.get_drug_names_by_drugbank_ids(drugbank_ids);
+				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drug_names) });
 				break;
 			}
 
