@@ -206,7 +206,6 @@
 							if (a.symbol > b.symbol) { return 1; }
 							return 0;
 						});
-						console.log(table);
 						const terminal = document.getElementById('terminal');
 						terminal.innerHTML = '';
 						let html = '<table>';
@@ -226,7 +225,6 @@
 							if (table_row && !table.cargo[i].locked) {
 								table_row.addEventListener('click', (e) => {
 									const gene_name = e.currentTarget.getAttribute('data-symbol');
-									console.log(gene_name);
 									document.getElementById('drug_name_input').value = '';
 									document.getElementById('gene_name_input').value = gene_name;
 									window.api.send('toMain', { command: 'gene_name_input', data: gene_name });

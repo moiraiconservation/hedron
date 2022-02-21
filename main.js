@@ -85,8 +85,17 @@ async function initialize() {
 	const gene_names = drugbank.get_unique_gene_names();
 	win.main.webContents.send('toRender', { command: 'drug_name_autocomplete', data: JSON.stringify(drug_names) });
 	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
-	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
 	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
+
+	win.main.webContents.send('toRender', { command: 'console.log', data: 'Drugbank' });
+	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
+
+	win.main.webContents.send('toRender', { command: 'console.log', data: 'HUGO' });
+	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(hugo) });
+
+	win.main.webContents.send('toRender', { command: 'console.log', data: 'Signalink' });
+	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(signalink) });
+
 }
 
 function show_window(filename) {
