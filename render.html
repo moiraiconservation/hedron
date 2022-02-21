@@ -202,25 +202,37 @@
 					case 'drug_to_gene_table': {
 						const table = JSON.parse(arg.data);
 						table.cargo.sort((a, b) => {
-							if (a.gene_name < b.gene_name) { return -1; }
-							if (a.gene_name > b.gene_name) { return 1; }
+							if (a.symbol < b.symbol) { return -1; }
+							if (a.symbol > b.symbol) { return 1; }
 							return 0;
 						});
+						console.log(table);
 						const terminal = document.getElementById('terminal');
 						terminal.innerHTML = '';
 						let html = '<table>';
 						html += '<thead><tr><th>Gene</th><th>Name</th></tr></thead>';
 						for (let i = 0; i < table.cargo.length; i++) {
-							if (table.cargo[i].highlight) {
-								html += '<tr style="color: #ffb429; text-shadow: 0 0 5px #ffb429">';	
-							}
-							else { html += '<tr>'; }
+							if (table.cargo[i].locked) { html += '<tr id="' + table.cargo[i].uuid + '" style="color: gray" data-symbol="' + table.cargo[i].symbol + '">'; }
+							else if (table.cargo[i].highlight) { html += '<tr class="clickable" id="' + table.cargo[i].uuid + '" style="color: #ffb429; text-shadow: 0 0 5px #ffb429" data-symbol="' + table.cargo[i].symbol + '">';	}
+							else { html += '<tr class="clickable" id="' + table.cargo[i].uuid + '" data-symbol="' + table.cargo[i].symbol + '">'; }
 							html += '<td>' + table.cargo[i].symbol + '</td>';
 							html += '<td>' + table.cargo[i].name + '</td>';
 							html += '</tr>';
 						}
 						html += '</table>';
 						terminal.innerHTML = html;
+						for (let i = 0; i < table.cargo.length; i++) {
+							const table_row = document.getElementById(table.cargo[i].uuid);
+							if (table_row && !table.cargo[i].locked) {
+								table_row.addEventListener('click', (e) => {
+									const gene_name = e.currentTarget.getAttribute('data-symbol');
+									console.log(gene_name);
+									document.getElementById('drug_name_input').value = '';
+									document.getElementById('gene_name_input').value = gene_name;
+									window.api.send('toMain', { command: 'gene_name_input', data: gene_name });
+								}, { once: true });
+							}
+						}
 						break;
 					}
 
@@ -229,6 +241,38 @@
 						const gene_name_container = document.getElementById('gene_name_container');
 						const gene_name_input = document.getElementById('gene_name_input');
 						autocomplete(gene_name_input, gene_names, gene_name_container);
+						break;
+					}
+
+					case 'gene_to_drug_table': {
+						const table = JSON.parse(arg.data);
+						table.cargo.sort((a, b) => {
+							if (a.common_name < b.common_name) { return -1; }
+							if (a.common_name > b.common_name) { return 1; }
+							return 0;
+						});
+						const terminal = document.getElementById('terminal');
+						terminal.innerHTML = '';
+						let html = '<table>';
+						html += '<thead><tr><th>Drug</th></tr></thead>';
+						for (let i = 0; i < table.cargo.length; i++) {
+							html += '<tr class="clickable" id="' + table.cargo[i].drugbank_id + '">';
+							html += '<td>' + table.cargo[i].common_name + '</td>';
+							html += '</tr>';
+						}
+						html += '</table>';
+						terminal.innerHTML = html;
+						for (let i = 0; i < table.cargo.length; i++) {
+							const table_row = document.getElementById(table.cargo[i].drugbank_id);
+							if (table_row && !table.cargo[i].locked) {
+								table_row.addEventListener('click', (e) => {
+									const drug_name = e.target.innerHTML;
+									document.getElementById('drug_name_input').value = drug_name;
+									document.getElementById('gene_name_input').value = '';
+									window.api.send('toMain', { command: 'drug_name_input', data: drug_name });
+								}, { once: true });
+							}
+						}
 						break;
 					}
 

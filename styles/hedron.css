@@ -302,9 +302,14 @@ table thead tr:first-child {
 	border-bottom: 1px solid white;
 }
 
+table .clickable { cursor: pointer; }
+
+table .clickable:hover { background-color: green; }
+
 tr {
 	width: 100%;
 }
+
 
 th, td {
 	text-align: center;

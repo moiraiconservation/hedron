@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // REQUIRED COMPONENTS ////////////////////////////////////////////////////////
 
+// core application components
 const { app, BrowserWindow, Menu } = require('electron');
 const app_menu = require ('./menu.js');
 const child_process = require('child_process');
@@ -15,28 +16,29 @@ const path = require('path');
 const DB = require('./database/db.js');
 const DRUGBANK = require('./database/drugbank.js');
 const SIGNALINK = require('./database/signalink.js');
-const drugbank = new DRUGBANK();
-const hugo = new DB();
-const signalink = new SIGNALINK();
 
-// redron objects
+// hedron objects
 const { GRAPH } = require('./js/graph.js');
-let graph = new GRAPH();
-
-const project = {
-	drug_vocabulary: 'data/drugbank_vocabulary.csv',
-	gene_targets: 'data/drugbank_targets.csv',
-	hugo: 'data/gene_with_product.txt',
-	signallink: 'data/signalink.csv'
-};
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES ///////////////////////////////////////////////////////////
 
+// core global variables
 const store = new eStore();
 const spawns = [];
 const win = { main: null, icon: 'assets/icons/icon.png' };
+
+// application-specific global variables
+const drugbank = new DRUGBANK();
+let graph = new GRAPH();
+const hugo = new DB();
+const project = {
+	drug_vocabulary: 'data/drugbank_vocabulary.csv',
+	gene_targets: 'data/drugbank_targets.csv',
+	hugo: 'data/gene_with_product.txt',
+	signalink: 'data/signalink.csv'
+};
+const signalink = new SIGNALINK();
 
 ///////////////////////////////////////////////////////////////////////////////
 // LOAD THE DEFAULT SETTINGS //////////////////////////////////////////////////
@@ -76,7 +78,7 @@ async function initialize() {
 	console.log('50%');
 	await hugo.load_json_file(project.hugo);
 	console.log('75%');
-	await signalink.load_xlsx_file(project.signallink);
+	await signalink.load_xlsx_file(project.signalink);
 	console.log('100%');
 	graph = signalink.export_as_graph();
 	const drug_names = drugbank.get_unique_drug_names();
@@ -286,8 +288,10 @@ ipc.on('toMain', async (event, arg) => {
 					const targets = hugo.filter_by('uniprot_ids', subgraph.get_unique_ids());
 					targets.delete_duplicates_by('uniprot_ids');
 					targets.highlight_by('uniprot_ids', uniprot_ids);
+					targets.lock_all();
+					const available = drugbank.target_polypeptides.filter_by('uniprot_id', subgraph.get_unique_ids()).get_unique('uniprot_id');
+					targets.unlock_by('uniprot_ids', available);
 					win.main.webContents.send('toRender', { command: 'drug_to_gene_table', data: JSON.stringify(targets) });
-
 				}
 				else { win.main.webContents.send('toRender', { command: 'clear', data: 'data-viewport' }); }
 				win.main.webContents.send('toRender', { command: 'hide', data: 'building-graph-modal' });
@@ -295,9 +299,9 @@ ipc.on('toMain', async (event, arg) => {
 			}
 
 			case 'gene_name_input': {
-					const drugbank_ids = drugbank.get_drugbank_ids_by_gene_name(arg.data);
-				const drug_names = drugbank.get_drug_names_by_drugbank_ids(drugbank_ids);
-				win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drug_names) });
+				const drugbank_ids = drugbank.get_drugbank_ids_by_gene_name(arg.data);
+				const drug_names = drugbank.vocabulary.filter_by('drugbank_id', drugbank_ids);
+				win.main.webContents.send('toRender', { command: 'gene_to_drug_table', data: JSON.stringify(drug_names) });
 				break;
 			}
 

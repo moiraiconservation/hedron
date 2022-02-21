@@ -68,7 +68,7 @@ function autocomplete(input, arr, append_to_html_element) {
 						if (e.target.parentNode.childNodes[1].childNodes) {
 							if (e.target.parentNode.childNodes[1].childNodes[0]) {
 								input.value = e.target.parentNode.childNodes[1].childNodes[0].textContent;
-								closeAllLists();
+								closeAllLists(e.target);
 							}
 						}
 					}

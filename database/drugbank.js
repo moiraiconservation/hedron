@@ -50,30 +50,6 @@ module.exports = class DRUGBANK {
 		return Array.from(new Set(drugbank_ids));
 	}
 
-	get_drug_names_by_drugbank_ids(drugbank_ids) {
-		let drug_names = [];
-		const targets = this.vocabulary.filter_by('drugbank_id', drugbank_ids);
-		if (targets.cargo.length) {
-			for (let i = 0; i < targets.cargo.length; i++) {
-				if (targets.cargo[i].common_name) {
-					if (Array.isArray(targets.cargo[i].common_name)) {
-						drug_names = drug_names.concat(targets.cargo[i].common_name);
-					}
-					else {
-						drug_names.push(targets.cargo[i].common_name);
-					}
-				}
-			}
-		}
-		const arr = Array.from(new Set(drug_names));
-		arr.sort((a, b) => {
-			if (a < b) { return -1; }
-			if (a > b) { return 1; }
-			return 0;
-		});
-		return arr;
-	}
-
 	get_uniprot_ids_by_drug_name(drug_name) {
 		let uniprot_ids = [];
 		const drugbank_id = this.get_drugbank_id_by_drug_name(drug_name);
@@ -140,13 +116,11 @@ module.exports = class DRUGBANK {
 				this.vocabulary.cargo[i].accession_numbers = this.vocabulary.cargo[i].accession_numbers.split(' | ');
 			}
 			else { this.vocabulary.cargo[i].accession_numbers = []; }
-			if (this.vocabulary.cargo[i].common_name && typeof (this.vocabulary.cargo[i].common_name) === 'string') { this.vocabulary.cargo[i].common_name = this.vocabulary.cargo[i].common_name.toLowerCase(); }
 			if (this.vocabulary.cargo[i].synonyms && typeof (this.vocabulary.cargo[i].synonyms) === 'string') {
 				this.vocabulary.cargo[i].synonyms = this.vocabulary.cargo[i].synonyms.split(' | ');
 				// remove entries with non-Latin characters
 				for (let j = this.vocabulary.cargo[i].synonyms.length - 1; j >= 0; j--) {
 					this.vocabulary.cargo[i].synonyms[j] = this.vocabulary.cargo[i].synonyms[j].normalize('NFD');
-					this.vocabulary.cargo[i].synonyms[j] = this.vocabulary.cargo[i].synonyms[j].toLowerCase();
 					if (this.vocabulary.cargo[i].synonyms[j].match(/[\u0300-\u036f]/) !== null) {
 						this.vocabulary.cargo[i].synonyms.splice(j, 1);
 					}
