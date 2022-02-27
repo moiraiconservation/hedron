@@ -8,12 +8,7 @@ class SIGNALINK extends DB {
 
 	constructor() { super(); }
 
-	clone() {
-		const d = new SIGNALINK();
-		d.cargo = JSON.parse(JSON.stringify(this.cargo));
-		d.path = this.path;
-		return d;
-	}
+	clone() { return super.clone(new SIGNALINK()); }
 
 	export_as_graph() {
 		// create an array of unique identifiers
@@ -68,6 +63,8 @@ class SIGNALINK extends DB {
 		graph.make_2d();
 		return graph;
 	}
+
+	filter_by(parameter, filter) { return super.filter_by(parameter, filter, new SIGNALINK()); }
 
 }
 

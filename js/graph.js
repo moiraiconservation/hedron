@@ -5,11 +5,9 @@ const { DB } = require('./db.js');
 const { IO } = require('./io.js');
 const { PATHER } = require('./pather.js');
 const { RANDOM } = require('./random.js');
-const { STATS } = require('./stats.js');
 const io = new IO();
 const pather = new PATHER();
 const random = new RANDOM();
-const stats = new STATS();
 
 function EDGE() {
 	this.id = random.guid();
@@ -217,19 +215,7 @@ class GRAPH extends DB {
 		}
 	}
 
-	clone() {
-		const g = new GRAPH();
-		g.cargo = this.clone_cargo();
-		return g;
-	}
-
-	clone_cargo() {
-		const c = [];
-		for (let i = 0; i < this.cargo.length; i++) {
-			c.push(this.cargo[i].clone());
-		}
-		return c;
-	}
+	clone() {	return super.clone(new GRAPH()); }
 
 	distribution_of_euclidean_distances_to_node(node_u) {
 		const index = node_u.index;
@@ -355,7 +341,7 @@ class GRAPH extends DB {
 
 	}
 
-	filter_by = (parameter, filter) => { return super.filter_by(parameter, filter, new GRAPH()); }
+	filter_by(parameter, filter) { return super.filter_by(parameter, filter, new GRAPH()); }
 
 	filter_by_id(id) { return this.filter_by('id', id); }
 
@@ -463,38 +449,14 @@ class GRAPH extends DB {
 		return hierarchy;
 	}
 
+	highlight_all_nodes() { this.highlight_all(); }
+
 	highlight_nodes(nodes) {
 		if (!nodes) { return; }
-		if (nodes.cargo) { nodes = nodes.cargo; }
-		const arr = [];
-		for (let i = 0; i < nodes.length; i++) {
-			arr.push(nodes[i].id);
-		}
-		const ids = Array.from(new Set(arr));
-		for (let i = 0; i < this.cargo.length; i++) {
-			if (ids.includes(this.cargo[i].id)) { this.cargo[i].highlight = true; }
-		}
-	}
+		const new_graph = this.make_graph_from_nodes(nodes);
+		const ids = new_graph.get_unique_ids();
+		this.highlight_by('id', ids);
 
-	includes_all(parameter, filter) {
-		if (!parameter || typeof (parameter) !== 'string') { return false; }
-		if (typeof (filter) === 'undefined') { return false; }
-		if (Array.isArray(filter)) {
-			let found = 0;
-			for (let i = 0; i < filter.length; i++) {
-				if (this.includes(parameter, filter[i])) { found++; }
-			}
-			if (found === filter.length) { return true; }
-			return false;
-		}
-		else {
-			const found = this.cargo.findIndex((x) => {
-				if (x[parameter]) { return x[parameter] === filter; }
-				else { return false; }
-			});
-			if (found >= 0) { return true; }
-			return false;
-		}
 	}
 
 	includes_all_ids(ids) { return this.includes_all('id', ids); }
@@ -509,11 +471,13 @@ class GRAPH extends DB {
 
 	includes_name(name) { return this.includes('name', name); }
 
-	lock_nodes() {
-		for (let i = 0; i < this.cargo.length; i++) {
-			this.cargo[i].clear_forces();
-			this.cargo[i].locked = true;
-		}
+	lock_all_nodes() { this.lock_all(); }
+
+	lock_nodes(nodes) {
+		if (!nodes) { return; }
+		const new_graph = this.make_graph_from_nodes(nodes);
+		const ids = new_graph.get_unique_ids();
+		this.lock_by('id', ids);
 	}
 
 	make_2d() {
@@ -522,26 +486,17 @@ class GRAPH extends DB {
 		}
 	}
 
-	merge_subgraph_by_id(subgraph) {
+	make_graph_from_nodes(nodes) {
+		if (typeof (nodes.cargo) !== 'undefined') { return nodes; }
+		const new_graph = new GRAPH();
+		new_graph.load(nodes);
+		return new_graph;
+	}
+
+	merge_subgraph(subgraph) {
 		if (typeof (subgraph) === 'undefined') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			const nodes = subgraph.cargo.filter((x) => { return x.id === this.cargo[i].id; });
-			for (let j = 0; j < nodes.length; j++) {
-				const clone = nodes[j].clone();
-				clone.index = this.cargo[i].index;
-				clone.edges = [];
-				for (let k = 0; k < this.cargo[i].edges.length; k++) {
-					clone.edges.push(this.cargo[i].edges[k].clone());
-				}
-				this.cargo[i] = clone;
-			}
-		}
-	}
-
-	merge_subgraph_by_name(subgraph) {
-		if (typeof (subgraph) === 'undefined') { return; }
-		for (let i = 0; i < this.cargo.length; i++) {
-			const nodes = subgraph.cargo.filter((x) => { return x.name === this.cargo[i].name; });
 			for (let j = 0; j < nodes.length; j++) {
 				const clone = nodes[j].clone();
 				clone.index = this.cargo[i].index;
@@ -603,36 +558,6 @@ class GRAPH extends DB {
 		return subgraph;
 	}
 
-	subgraph_from_index(index, levels) {
-		let clone_list = [];
-		const index_list = [];
-		const graph = new GRAPH();
-		if (typeof (index) === 'undefined') { return graph; }
-		levels = levels || 0;
-		index_list.push(index);
-		let clone = this.cargo[index].clone();
-		graph.add(clone);
-		clone_list.push(clone);
-		while (levels > 0) {
-			const new_list = [];
-			for (let i = 0; i < clone_list.length; i++) {
-				for (let j = 0; j < clone_list[i].edges.length; j++) {
-					const edge = clone_list[i].edges[j];
-					if (!index_list.includes(edge.target_index)) {
-						clone = this.cargo[edge.target_index].clone();
-						index_list.push(edge.target_index);
-						graph.add(clone);
-						new_list.push(clone);
-					}
-				}
-			}
-			clone_list = new_list;
-			levels = levels - 1;
-		}
-		graph.update_indices();
-		return graph;
-	}
-
 	subgraph_from_nodes(nodes) {
 		let subgraph = new GRAPH();
 		if (!nodes) { return subgraph; }
@@ -661,10 +586,23 @@ class GRAPH extends DB {
 		return subgraph;
 	}
 
-	unlock_nodes() {
-		for (let i = 0; i < this.cargo.length; i++) {
-			this.cargo[i].locked = false;
-		}
+	unhighlight_all_nodes() { this.unhighlight_all(); }
+
+	unhighlight_nodes(nodes) {
+		if (!nodes) { return; }
+		const new_graph = this.make_graph_from_nodes(nodes);
+		const ids = new_graph.get_unique_ids();
+		this.unhighlight_by('id', ids);
+
+	}
+
+	unlock_all_nodes() { this.unlock_all(); }
+
+	unlock_nodes(nodes) {
+		if (!nodes) { return; }
+		const new_graph = this.make_graph_from_nodes(nodes);
+		const ids = new_graph.get_unique_ids();
+		this.unlock_by('id', ids);
 	}
 
 	update_indices() {

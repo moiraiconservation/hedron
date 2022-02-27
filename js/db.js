@@ -63,8 +63,8 @@ class DB {
 		this.path = '';
 	}
 
-	clone() {
-		const d = new DB();
+	clone(return_class) {
+		const d = return_class || new DB();
 		d.cargo = this.clone_cargo();
 		d.path = this.path;
 		return d;
@@ -73,8 +73,10 @@ class DB {
 	clone_cargo() {
 		const c = [];
 		for (let i = 0; i < this.cargo.length; i++) {
-			const obj = JSON.parse(JSON.stringify(this.cargo[i]));
-			c.push(obj);
+			if (typeof (this.cargo[i].clone) !== 'undefined' && typeof (this.cargo[i].clone) === 'function') {
+				c.push(this.cargo[i].clone());
+			}
+			else { c.push(JSON.parse(JSON.stringify(this.cargo[i]))); }
 		}
 		return c;
 	}
@@ -295,6 +297,20 @@ class DB {
 			if (found >= 0) { return true; }
 			return false;
 		}
+	}
+
+	includes_all(parameter, filter) {
+		if (!parameter || typeof (parameter) !== 'string') { return false; }
+		if (typeof (filter) === 'undefined') { filter = this.get_unique(parameter); }
+		if (Array.isArray(filter)) {
+			let found = 0;
+			for (let i = 0; i < filter.length; i++) {
+				if (this.includes(parameter, filter[i])) { found++; }
+			}
+			if (found === filter.length) { return true; }
+			return false;
+		}
+		else { return this.includes(parameter, filter); }
 	}
 
 	is_loaded() {

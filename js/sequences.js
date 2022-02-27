@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sequences.js
 
+const { DB } = require('./db.js');
 const { IO } = require('./io.js');
 const { PATHER } = require('./pather.js');
 const io = new IO();
