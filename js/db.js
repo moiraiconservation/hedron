@@ -1,16 +1,46 @@
 ///////////////////////////////////////////////////////////////////////////////
 // db.js
 
-const { DATA } = require('../js/data.js');
-const { IO } = require('../js/io.js');
-const { PATHER } = require('../js/pather.js');
+const { DATA } = require('./data.js');
+const { IO } = require('./io.js');
+const { PATHER } = require('./pather.js');
 
-module.exports = class DB {
+class DB {
 
 	constructor() {
 		this.cargo = [];
 		this.path = '';
 	}
+
+	// private methods
+
+	#assign_from_string(parameter, value, obj) {
+		let parent = obj;
+		const keys = parameter.split('.');
+		for (let i = 0; i < keys.length - 1; i++) {
+			if (typeof (parent) !== 'undefined') {
+				if (i < keys.length - 1) {
+					const { [keys[i]]: returned_value } = parent;
+					parent = returned_value;
+				}
+			}
+		}
+		parent[keys[keys.length - 1]] = value;
+	}
+
+	#destructure_from_string(parameter, obj) {
+		let parent = obj;
+		const keys = parameter.split('.');
+		for (let i = 0; i < keys.length; i++) {
+			if (typeof (parent) !== 'undefined') {
+				const { [keys[i]]: returned_value } = parent;
+				parent = returned_value;
+			}
+		}
+		return parent;
+	}
+
+	// public methods
 
 	add(records) {
 		if (Array.isArray(records)) {
@@ -59,18 +89,19 @@ module.exports = class DB {
 		}
 		else {
 			for (let i = this.cargo.length - 1; i >= 0; i--) {
-				if (this.cargo[i][parameter]) {
-					if (Array.isArray(this.cargo[i][parameter])) {
-						const index = this.cargo[i][parameter].findIndex((y) => {
+				const element = this.#destructure_from_string(parameter, this.cargo[i]);
+				if (typeof (element) !== 'undefined') {
+					if (Array.isArray(element)) {
+						const index = element.findIndex((y) => {
 							if (typeof (y) === 'string' && typeof (filter) === 'string') { return y.toLowerCase() === filter.toLowerCase(); }
 							else { return y === filter; }
 						});
 						if (index > -1) { this.cargo.splice(i, 1); }
 					}
-					else if (typeof (this.cargo[i][parameter]) === 'string' && typeof (filter) === 'string') {
-						if (this.cargo[i][parameter].toLowerCase() === filter.toLocaleLowerCase()) { this.cargo.splice(i, 1); }
+					else if (typeof (element) === 'string' && typeof (filter) === 'string') {
+						if (element.toLowerCase() === filter.toLocaleLowerCase()) { this.cargo.splice(i, 1); }
 					}
-					else if (this.cargo[i][parameter] === filter) { this.cargo.splice(i, 1); }
+					else if (element === filter) { this.cargo.splice(i, 1); }
 				} 
 			}
 		}
@@ -88,18 +119,19 @@ module.exports = class DB {
 			let count = 0;
 			for (let i = this.cargo.length - 1; i >= 0; i--) {
 				let matched = false;
-				if (this.cargo[i][parameter]) {
-					if (Array.isArray(this.cargo[i][parameter])) {
-						const index = this.cargo[i][parameter].findIndex((y) => {
+				const element = this.#destructure_from_string(parameter, this.cargo[i]);
+				if (typeof (element) !== 'undefined') {
+					if (Array.isArray(element)) {
+						const index = element.findIndex((y) => {
 							if (typeof (y) === 'string' && typeof (filter) === 'string') { return y.toLowerCase() === filter.toLowerCase(); }
 							else { return y === filter; }
 						});
 						if (index > -1) { matched = true; }
 					}
-					else if (typeof (this.cargo[i][parameter]) === 'string' && typeof (filter) === 'string') {
-						if (this.cargo[i][parameter].toLowerCase() === filter.toLocaleLowerCase()) { matched = true; }
+					else if (typeof (element) === 'string' && typeof (filter) === 'string') {
+						if (element.toLowerCase() === filter.toLocaleLowerCase()) { matched = true; }
 					}
-					else if (this.cargo[i][parameter] === filter) { matched = true; }
+					else if (element === filter) { matched = true; }
 					if (matched) {
 						count++;
 						if (count > 1) { this.cargo.splice(i, 1); }
@@ -122,8 +154,8 @@ module.exports = class DB {
 		return true;
 	}
 
-	filter_by(parameter, filter) {
-		const db = new DB();
+	filter_by(parameter, filter, return_class) {
+		const db = return_class || new DB();
 		if (!parameter || typeof (parameter) !== 'string') { return db; }
 		if (typeof (filter) === 'undefined') { return db; }
 		if (Array.isArray(filter)) {
@@ -133,9 +165,10 @@ module.exports = class DB {
 		}
 		else {
 			db.cargo = this.cargo.filter((x) => {
-				if (x[parameter]) {
-					if (Array.isArray(x[parameter])) {
-						const arr = x[parameter].filter((y) => {
+				const element = this.#destructure_from_string(parameter, x);
+				if (typeof (element) !== 'undefined') {
+					if (Array.isArray(element)) {
+						const arr = element.filter((y) => {
 							if (typeof (y) === 'string' && typeof (filter) === 'string') {
 								return y.toLowerCase() === filter.toLowerCase();
 							}
@@ -143,10 +176,10 @@ module.exports = class DB {
 						});
 						return arr.length > 0;
 					}
-					else if (typeof (x[parameter]) === 'string' && typeof (filter) === 'string') {
-						return x[parameter].toLowerCase() === filter.toLowerCase();
+					else if (typeof (element) === 'string' && typeof (filter) === 'string') {
+						return element.toLowerCase() === filter.toLowerCase();
 					}
-					else { return x[parameter] === filter; }
+					else { return element === filter; }
 				}
 				else { return false; }
 			});
@@ -160,7 +193,7 @@ module.exports = class DB {
 		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
 		for (let i = 0; i < v_list.length; i++) {
-			const quant = this.cargo.filter((v) => { return v[parameter] === v_list[i]; }).length;
+			const quant = this.filter_by(parameter, v_list[i]).length;
 			p_list.push({ parameter: v_list[i], quant: quant });
 		}
 		p_list.sort((a, b) => { return b.quant - a.quant; });
@@ -174,7 +207,7 @@ module.exports = class DB {
 		if (v_list.length === 1) { return v_list[0]; }
 		const p_list = [];
 		for (let i = 0; i < v_list.length; i++) {
-			const quant = this.cargo.filter((v) => { return v[parameter] === v_list[i]; }).length;
+			const quant = this.filter_by(parameter, v_list[i]).length;
 			p_list.push({ parameter: v_list[i], quant: quant });
 		}
 		p_list.sort((a, b) => { return b.quant - a.quant; });
@@ -186,9 +219,10 @@ module.exports = class DB {
 		let arr = [];
 		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
-			if (this.cargo[i][parameter]) {
-				if (Array.isArray(this.cargo[i][parameter])) { arr = arr.concat(this.cargo[i][parameter]); }
-				else { arr.push(this.cargo[i][parameter]); }
+			const element = this.#destructure_from_string(parameter, this.cargo[i]);
+			if (typeof (element) !== 'undefined') {
+				if (Array.isArray(element)) { arr = arr.concat(element); }
+				else { arr.push(element); }
 			}
 		}
 		return Array.from(new Set(arr));
@@ -198,23 +232,31 @@ module.exports = class DB {
 		const arr = [];
 		if (!parameter || typeof (parameter) !== 'string') { return arr; }
 		for (let i = 0; i < this.cargo.length; i++) {
-			const keys = Object.keys(this.cargo[i]);
-			if (keys.includes(parameter)) {
-				let type = typeof (this.cargo[i][parameter]);
-				if (Array.isArray(this.cargo[i][parameter])) { type = 'array'; }
-				arr.push(type);
-			}
+			const element = this.#destructure_from_string(parameter, this.cargo[i]);
+			let type = typeof (element);
+			if (Array.isArray(element)) { type = 'array'; }
+			arr.push(type);
 		}
 		return Array.from(new Set(arr));
 	}
 
-	get_unique_parameters() {
+	get_unique_parameters(parameter) {
 		let all_keys = [];
-		for (let i = 0; i < this.cargo.length; i++) {
-			const keys = Object.keys(this.cargo[i]);
-			all_keys = all_keys.concat(keys);
+		if (typeof (parameter) === 'undefined') {
+			for (let i = 0; i < this.cargo.length; i++) {
+				const keys = Object.keys(this.cargo[i]);
+				all_keys = all_keys.concat(keys);
+			}
+			return Array.from(new Set(all_keys));
 		}
-		return Array.from(new Set(all_keys));
+		else {
+			for (let i = 0; i < this.cargo.length; i++) {
+				const element = this.#destructure_from_string(parameter, this.cargo[i]);
+				const keys = Object.keys(element);
+				all_keys = all_keys.concat(keys);
+			}
+			return Array.from(new Set(all_keys));
+		}
 	}
 
 	highlight_all() { this.set('highlight', true); }
@@ -232,9 +274,10 @@ module.exports = class DB {
 		}
 		else {
 			const found = this.cargo.findIndex((x) => {
-				if (x[parameter]) {
-					if (Array.isArray(x[parameter])) {
-						const arr = x[parameter].filter((y) => {
+				const element = this.#destructure_from_string(parameter, x);
+				if (typeof (element) !== 'undefined') {
+					if (Array.isArray(element)) {
+						const arr = element.filter((y) => {
 							if (typeof (y) === 'string' && typeof (filter) === 'string') {
 								return y.toLowerCase() === filter.toLowerCase();
 							}
@@ -242,10 +285,10 @@ module.exports = class DB {
 						});
 						return arr.length > 0;			
 					}
-					else if (typeof (x[parameter]) === 'string' && typeof (filter) === 'string') {
-						return x[parameter].toLowerCase() === filter.toLowerCase();
+					else if (typeof (element) === 'string' && typeof (filter) === 'string') {
+						return element.toLowerCase() === filter.toLowerCase();
 					}
-					else { return x[parameter] === filter; }
+					else { return element === filter; }
 				}
 				else { return false; }
 			});
@@ -291,7 +334,7 @@ module.exports = class DB {
 	set(parameter, value) {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
-			this.cargo[i][parameter] = value;
+			this.#assign_from_string(parameter, value, this.cargo[i]);
 		}
 	}
 
@@ -306,18 +349,20 @@ module.exports = class DB {
 		}
 		else {
 			for (let i = 0; i < this.cargo.length; i++) {
-				if (this.cargo[i][parameter2]) {
-					if (Array.isArray(this.cargo[i][parameter2])) {
-						const index = this.cargo[i][parameter2].findIndex((y) => {
+				let element = this.#destructure_from_string(parameter2, this.cargo[i]);
+				if (typeof (element) !== 'undefined') {
+
+					if (Array.isArray(element)) {
+						const index = element.findIndex((y) => {
 							if (typeof (y) === 'string' && typeof (filter) === 'string') { return y.toLowerCase() === filter.toLowerCase(); }
 							else { return y === filter; }
 						});
-						if (index > -1) { this.cargo[i][parameter1] = value; }
+						if (index > -1) { this.#assign_from_string(parameter1, value, this.cargo[i]); }
 					}
-					else if (typeof (this.cargo[i][parameter2]) === 'string' && typeof (filter) === 'string') {
-						if (this.cargo[i][parameter2].toLowerCase() === filter.toLocaleLowerCase()) { this.cargo[i][parameter1] = value; }
+					else if (typeof (element) === 'string' && typeof (filter) === 'string') {
+						if (element.toLowerCase() === filter.toLocaleLowerCase()) { this.#assign_from_string(parameter1, value, this.cargo[i]); }
 					}
-					else if (this.cargo[i][parameter2] === filter) { this.cargo[i][parameter1] = value; }
+					else if (element === filter) { this.#assign_from_string(parameter1, value, this.cargo[i]); }
 				}
 			}
 		}
@@ -372,3 +417,5 @@ module.exports = class DB {
 	unlock_by(parameter, filter) { this.set_by('locked', false, parameter, filter); }
 
 }
+
+module.exports = { DB: DB }

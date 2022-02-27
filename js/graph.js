@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // graph.js
 
+const { DB } = require('./db.js');
 const { IO } = require('./io.js');
 const { PATHER } = require('./pather.js');
 const { RANDOM } = require('./random.js');
@@ -175,11 +176,11 @@ function NODE() {
 
 }
 
-function GRAPH() {
+class GRAPH extends DB {
 
-	this.cargo = [];
+	constructor() { super(); }
 
-	this.add = (node) => {
+	add(node) {
 		if (Array.isArray(node)) {
 			this.cargo = this.cargo.concat(node);
 			return;
@@ -196,7 +197,7 @@ function GRAPH() {
 		return;
 	}
 
-	this.centroid = () => {
+	centroid() {
 		const mean = new NODE();
 		if (!this.cargo.length) { return mean; }
 		for (let i = 0; i < this.cargo.length; i++) {
@@ -210,29 +211,27 @@ function GRAPH() {
 		return mean;
 	}
 
-	this.clear = () => { this.cargo = []; }
-
-	this.clear_forces = () => {
+	clear_forces() {
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].clear_forces();
 		}
 	}
 
-	this.clone = () => {
+	clone() {
 		const g = new GRAPH();
 		g.cargo = this.clone_cargo();
 		return g;
 	}
 
-	this.clone_cargo = () => {
-		const cargo = [];
+	clone_cargo() {
+		const c = [];
 		for (let i = 0; i < this.cargo.length; i++) {
-			cargo.push(this.cargo[i].clone());
+			c.push(this.cargo[i].clone());
 		}
-		return cargo;
+		return c;
 	}
 
-	this.distribution_of_euclidean_distances_to_node = (node_u) => {
+	distribution_of_euclidean_distances_to_node(node_u) {
 		const index = node_u.index;
 		const distribution = [];
 		for (let i = 0; i < this.cargo.length; i++) {
@@ -244,7 +243,7 @@ function GRAPH() {
 		return distribution;
 	}
 
-	this.distribution_of_euclidean_distances = () => {
+	distribution_of_euclidean_distances() {
 		const distribution = [];
 		const coordinates = [];
 		for (let u = 0; u < this.cargo.length; u++) {
@@ -267,11 +266,7 @@ function GRAPH() {
 		return distribution;
 	}
 
-	this.export_as_json = () => {
-		return JSON.stringify(this.cargo);
-	}
-
-	this.force_directed_layout = (graph, options) => {
+	force_directed_layout(graph, options) {
 		// Eades 1984
 		//	repulsive force:
 		//		f_rep(u, v) = [repulsion constant / (Euclidean distance)^2] * unit vector_vu
@@ -360,44 +355,17 @@ function GRAPH() {
 
 	}
 
-	this.filter_by = (parameter, filter) => {
-		const new_graph = new GRAPH();
-		if (!parameter || typeof (parameter) !== 'string') { return new_graph; }
-		if (typeof (filter) === 'undefined') { return new_graph; }
-		if (Array.isArray(filter)) {
-			for (let i = 0; i < filter.length; i++) {
-				new_graph.add(this.filter_by(parameter, filter[i]));
-			}
-		}
-		else {
-			new_graph.cargo = this.cargo.filter((x) => {
-				if (x[parameter]) { return x[parameter] === filter; }
-				else { return false; }
-			});
-		}
-		return new_graph.clone();
-	}
+	filter_by = (parameter, filter) => { return super.filter_by(parameter, filter, new GRAPH()); }
 
-	this.filter_by_id = (id) => { return this.filter_by('id', id); }
+	filter_by_id(id) { return this.filter_by('id', id); }
 
-	this.filter_by_name = (name) => { return this.filter_by('name', name); }
+	filter_by_name(name) { return this.filter_by('name', name); }
 
-	this.get_unique = (parameter) => {
-		const arr = [];
-		if (!parameter || typeof (parameter) !== 'string') { return arr; }
-		for (let i = 0; i < this.cargo.length; i++) {
-			if (this.cargo[i][parameter]) {
-				arr.push(this.cargo[i][parameter]);
-			}
-		}
-		return Array.from(new Set(arr));
-	}
+	get_unique_ids() { return this.get_unique('id'); }
 
-	this.get_unique_ids = () => { return this.get_unique('id'); }
+	get_unique_names() { return this.get_unique('name'); }
 
-	this.get_unique_names = () => { return this.get_unique('name'); }
-
-	this.graph_distance_between_nodes = (node_u, node_v, threshold) => {
+	graph_distance_between_nodes(node_u, node_v, threshold) {
 		const hierarchy = [];
 		if (!node_u || !node_v) { return hierarchy; }
 		if (node_u.id === node_v.id) { return hierarchy; }
@@ -428,7 +396,7 @@ function GRAPH() {
 		else { return threshold; }
 	}
 
-	this.graph_distance_matrix = (threshold) => {
+	graph_distance_matrix(threshold) {
 		const matrix = new Array(this.cargo.length);
 		for (let u = 0; u < matrix.length; u++) {
 			matrix[u] = new Array(this.cargo.length).fill(0);
@@ -444,7 +412,7 @@ function GRAPH() {
 		return matrix;
 	}
 
-	this.hierarchy_between_nodes = (node_u, node_v, threshold) => {
+	hierarchy_between_nodes(node_u, node_v, threshold) {
 		const hierarchy = [];
 		if (!node_u || !node_v) { return hierarchy; }
 		if (node_u.id === node_v.id) { return hierarchy; }
@@ -475,7 +443,7 @@ function GRAPH() {
 			for (let i = hierarchy[level].length; i >= 0; i--) {
 				if (hierarchy[level][i] !== node_v.id) { hierarchy[level].splice(i, 1); }
 			}
-			previous_level = hierarchy[level];
+			let previous_level = hierarchy[level];
 			for (let i = level - 1; i > 0; i--) {
 				for (let j = hierarchy[i].length - 1; j >= 0; j--) {
 					const filtered = this.filter_by('id', hierarchy[i][j]);
@@ -495,7 +463,7 @@ function GRAPH() {
 		return hierarchy;
 	}
 
-	this.highlight_nodes = (nodes) => {
+	highlight_nodes(nodes) {
 		if (!nodes) { return; }
 		if (nodes.cargo) { nodes = nodes.cargo; }
 		const arr = [];
@@ -508,26 +476,7 @@ function GRAPH() {
 		}
 	}
 
-	this.includes = (parameter, filter) => {
-		if (!parameter || typeof (parameter) !== 'string') { return false; }
-		if (typeof (filter) === 'undefined') { return false; }
-		if (Array.isArray(filter)) {
-			for (let i = 0; i < filter.length; i++) {
-				if (this.includes(parameter, filter[i])) { return true; }
-			}
-			return false;
-		}
-		else {
-			const found = this.cargo.findIndex((x) => {
-				if (x[parameter]) { return x[parameter] === filter; }
-				else { return false; }
-			});
-			if (found >= 0) { return true; }
-			return false;
-		}
-	}
-
-	this.includes_all = (parameter, filter) => {
+	includes_all(parameter, filter) {
 		if (!parameter || typeof (parameter) !== 'string') { return false; }
 		if (typeof (filter) === 'undefined') { return false; }
 		if (Array.isArray(filter)) {
@@ -548,32 +497,32 @@ function GRAPH() {
 		}
 	}
 
-	this.includes_all_ids = (ids) => { return this.includes_all('id', ids); }
+	includes_all_ids(ids) { return this.includes_all('id', ids); }
 
-	this.includes_all_indices = (indices) => { return this.includes_all('index', indices); }
+	includes_all_indices(indices) { return this.includes_all('index', indices); }
 
-	this.includes_all_names = (names) => { return this.includes_all('name', names); }
+	includes_all_names(names) { return this.includes_all('name', names); }
 
-	this.includes_id = (id) => { return this.includes('id', id); }
+	includes_id(id) { return this.includes('id', id); }
 
-	this.includes_index = (index) => { return this.includes('index', index); }
+	includes_index(index) { return this.includes('index', index); }
 
-	this.includes_name = (name) => { return this.includes('name', name); }
+	includes_name(name) { return this.includes('name', name); }
 
-	this.lock_nodes = () => {
+	lock_nodes() {
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].clear_forces();
 			this.cargo[i].locked = true;
 		}
 	}
 
-	this.make_2d = () => {
+	make_2d() {
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].z = 0;
 		}
 	}
 
-	this.merge_subgraph_by_id = (subgraph) => {
+	merge_subgraph_by_id(subgraph) {
 		if (typeof (subgraph) === 'undefined') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			const nodes = subgraph.cargo.filter((x) => { return x.id === this.cargo[i].id; });
@@ -589,7 +538,7 @@ function GRAPH() {
 		}
 	}
 
-	this.merge_subgraph_by_name = (subgraph) => {
+	merge_subgraph_by_name(subgraph) {
 		if (typeof (subgraph) === 'undefined') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {
 			const nodes = subgraph.cargo.filter((x) => { return x.name === this.cargo[i].name; });
@@ -605,7 +554,7 @@ function GRAPH() {
 		}
 	}
 
-	this.save_as_json = async (path) => {
+	async save_as_json(path) {
 		if (typeof (path) === 'undefined') { path = ''; }
 		const path_record = await pather.parse(path);
 		if (!path_record.filename) { await path_record.set_file_name(this.create_file_name('graph')); }
@@ -616,7 +565,7 @@ function GRAPH() {
 		await io.write_file(full_path, contents);
 	}
 
-	this.sort_by_degree = () => {
+	sort_by_degree() {
 		this.cargo.sort((a, b) => {
 			if (a.edges.length > b.edges.length) { return -1; }
 			if (a.edges.length < b.edges.length) { return 1; }
@@ -625,14 +574,14 @@ function GRAPH() {
 		this.update_indices();
 	}
 
-	this.subgraph_between_nodes = (node_u, node_v, threshold) => {
+	subgraph_between_nodes(node_u, node_v, threshold) {
 		let subgraph = new GRAPH();
 		if (!node_u || !node_v) { return subgraph; }
 		if (node_u.id === node_v.id) { return subgraph; }
 		threshold = threshold || 10000;
 		const hierarchy = this.hierarchy_between_nodes(node_u, node_v, threshold);
 		const arr = [];
-		for (i = 0; i < hierarchy.length; i++) {
+		for (let i = 0; i < hierarchy.length; i++) {
 			for (let j = 0; j < hierarchy[i].length; j++) {
 				arr.push(hierarchy[i][j]);
 			}
@@ -643,7 +592,7 @@ function GRAPH() {
 		return subgraph;
 	}
 
-	this.subgraph_from_ids = (ids) => {
+	subgraph_from_ids(ids) {
 		let subgraph = new GRAPH();
 		if (ids.length) {
 			const nodes = this.filter_by_id(ids);
@@ -654,7 +603,7 @@ function GRAPH() {
 		return subgraph;
 	}
 
-	this.subgraph_from_index = (index, levels) => {
+	subgraph_from_index(index, levels) {
 		let clone_list = [];
 		const index_list = [];
 		const graph = new GRAPH();
@@ -684,7 +633,7 @@ function GRAPH() {
 		return graph;
 	}
 
-	this.subgraph_from_nodes = (nodes) => {
+	subgraph_from_nodes(nodes) {
 		let subgraph = new GRAPH();
 		if (!nodes) { return subgraph; }
 		if (nodes.cargo) { nodes = nodes.cargo; }
@@ -703,9 +652,6 @@ function GRAPH() {
 				if (i !== j) {
 					const mini_graph = this.subgraph_between_nodes(nodes[i], nodes[j]);
 					arr = arr.concat(mini_graph.get_unique('id'));
-
-					//console.log(this.graph_distance_between_nodes(nodes[i], nodes[j]));
-
 				}
 			}
 		}
@@ -715,13 +661,13 @@ function GRAPH() {
 		return subgraph;
 	}
 
-	this.unlock_nodes = () => {
+	unlock_nodes() {
 		for (let i = 0; i < this.cargo.length; i++) {
 			this.cargo[i].locked = false;
 		}
 	}
 
-	this.update_indices = () => {
+	update_indices() {
 		const updated = [];
 		for (let i = 0; i < this.cargo.length; i++) {
 			const new_index = i;

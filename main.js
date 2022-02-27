@@ -13,9 +13,9 @@ const ipc = require('electron').ipcMain;
 const path = require('path');
 
 // hedron classes
-const DB = require('./database/db.js');
-const DRUGBANK = require('./database/drugbank.js');
-const SIGNALINK = require('./database/signalink.js');
+const { DB } = require('./js/db.js');
+const { DRUGBANK } = require('./database/drugbank.js');
+const { SIGNALINK } = require('./database/signalink.js');
 
 // hedron objects
 const { GRAPH } = require('./js/graph.js');
@@ -87,12 +87,11 @@ async function initialize() {
 	win.main.webContents.send('toRender', { command: 'gene_name_autocomplete', data: JSON.stringify(gene_names) });
 	win.main.webContents.send('toRender', { command: 'hide', data: 'initial-modal' });
 
+	// console.log output for testing purposes
 	win.main.webContents.send('toRender', { command: 'console.log', data: 'Drugbank' });
 	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(drugbank) });
-
 	win.main.webContents.send('toRender', { command: 'console.log', data: 'HUGO' });
 	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(hugo) });
-
 	win.main.webContents.send('toRender', { command: 'console.log', data: 'Signalink' });
 	win.main.webContents.send('toRender', { command: 'console.log json', data: JSON.stringify(signalink) });
 

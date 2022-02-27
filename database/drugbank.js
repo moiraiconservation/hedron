@@ -1,9 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // drugbank.js
 
-const DB = require('./db.js');
+const { DB } = require('../js/db.js');
 
-module.exports = class DRUGBANK {
+class DRUGBANK {
 
 	constructor() {
 		this.target_polypeptides = new DB();
@@ -132,3 +132,5 @@ module.exports = class DRUGBANK {
 	}
 
 }
+
+module.exports = { DRUGBANK: DRUGBANK }

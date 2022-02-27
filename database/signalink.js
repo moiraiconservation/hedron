@@ -1,12 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 // signalink.js
 
-const DB = require('./db.js');
+const { DB } = require('../js/db.js');
 const { EDGE, NODE, GRAPH } = require('../js/graph.js');
 
-module.exports = class SIGNALINK extends DB {
+class SIGNALINK extends DB {
 
 	constructor() { super(); }
+
+	clone() {
+		const d = new SIGNALINK();
+		d.cargo = JSON.parse(JSON.stringify(this.cargo));
+		d.path = this.path;
+		return d;
+	}
 
 	export_as_graph() {
 		// create an array of unique identifiers
@@ -62,5 +69,6 @@ module.exports = class SIGNALINK extends DB {
 		return graph;
 	}
 
-
 }
+
+module.exports = { SIGNALINK: SIGNALINK }

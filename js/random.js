@@ -8,6 +8,10 @@ function RANDOM() {
 		return s4() + s4() + s4() + s4() + s4() + s4() + s4() + s4();
 	}
 
+	this.random_int_from_interval = (min, max) => {
+		return Math.floor(Math.random() * (max - min + 1) + min);
+	}
+
 }
 
 module.exports = { RANDOM: RANDOM }
