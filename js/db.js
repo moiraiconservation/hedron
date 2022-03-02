@@ -347,6 +347,19 @@ class DB {
 
 	lock_by(parameter, filter) { this.set_by('locked', true, parameter, filter); }
 
+	async save_as_json(path) {
+		if (typeof (path) === 'undefined') { path = this.path; }
+		const io = new IO();
+		const pather = new PATHER();
+		const path_record = await pather.parse(path);
+		if (!path_record.filename) { await path_record.set_file_name('database'); }
+		await path_record.set_extension('txt');
+		await path_record.force_path();
+		const full_path = await path_record.get_full_path();
+		const contents = this.export_as_json();
+		await io.write_file(full_path, contents);
+	}
+
 	set(parameter, value) {
 		if (!parameter || typeof (parameter) !== 'string') { return; }
 		for (let i = 0; i < this.cargo.length; i++) {

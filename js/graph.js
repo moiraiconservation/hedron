@@ -2,11 +2,7 @@
 // graph.js
 
 const { DB } = require('./db.js');
-const { IO } = require('./io.js');
-const { PATHER } = require('./pather.js');
 const { RANDOM } = require('./random.js');
-const io = new IO();
-const pather = new PATHER();
 const random = new RANDOM();
 
 function EDGE() {
@@ -177,23 +173,6 @@ function NODE() {
 class GRAPH extends DB {
 
 	constructor() { super(); }
-
-	add(node) {
-		if (Array.isArray(node)) {
-			this.cargo = this.cargo.concat(node);
-			return;
-		}
-		if (node.cargo) {
-			if (node.cargo.length) {
-				for (let i = 0; i < node.cargo.length; i++) {
-					this.add(node.cargo[i]);
-				}
-			}
-			return;
-		}
-		this.cargo.push(node);
-		return;
-	}
 
 	centroid() {
 		const mean = new NODE();
@@ -507,17 +486,6 @@ class GRAPH extends DB {
 				this.cargo[i] = clone;
 			}
 		}
-	}
-
-	async save_as_json(path) {
-		if (typeof (path) === 'undefined') { path = ''; }
-		const path_record = await pather.parse(path);
-		if (!path_record.filename) { await path_record.set_file_name(this.create_file_name('graph')); }
-		await path_record.set_extension('txt');
-		await path_record.force_path();
-		const full_path = await path_record.get_full_path();
-		const contents = this.export_as_json();
-		await io.write_file(full_path, contents);
 	}
 
 	sort_by_degree() {
